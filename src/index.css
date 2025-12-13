@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&family=Tajawal:wght@400;500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cream text-primary font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-bold;
+  }
+  [lang="ar"] body, [lang="ar"] h1, [lang="ar"] h2, [lang="ar"] h3, [lang="ar"] h4, [lang="ar"] h5, [lang="ar"] h6, [lang="ar"] button, [lang="ar"] input, [lang="ar"] textarea {
+    font-family: 'Tajawal', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent text-white px-6 py-2 rounded-lg hover:bg-highlight transition-all duration-300 shadow-md hover:shadow-lg active:scale-95;
+  }
+  .card-glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl rounded-xl;
+  }
+}

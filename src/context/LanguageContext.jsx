@@ -230,7 +230,7 @@ export const translations = {
         visionContent: "To become the first reservation platform in Jordan, then expand regionally, maintaining a simple experience for customers and effective tools for restaurants.",
         partnership: "Our Partnership with Venues",
         partnershipContent: "We don't impose complex solutions or heavy commissions. We build long-term partnerships with restaurants and cafes because their success is our success.",
-        status: "TableEase Today",
+        aboutStatus: "TableEase Today",
         statusContent: "In early launch phase in Jordan, constantly developing based on user and restaurant needs.",
         startNow: "Start Now",
         exploreRest: "Discover Restaurants",
@@ -265,7 +265,7 @@ export const translations = {
         cuisineType: "Cuisine / Type",
         saveChanges: "Save Changes",
         recentBookings: "Recent Bookings",
-        status: "Status",
+        // statusLabel: "Status", (consist with line 72)
         actions: "Actions",
         accept: "Accept",
         reject: "Reject",
@@ -445,7 +445,7 @@ export const translations = {
         addNewOffer: "Add New Offer",
         active: "Active",
         inactive: "Inactive",
-        status: "Status",
+        // statusField: "Status", (consist with line 72)
         descriptionLabel: "Description",
         tableManagementDesc: "Manage your individual tables, their capacities, and smart allocation settings.",
         pplShort: "ppl",
@@ -574,7 +574,7 @@ export const translations = {
         serviceEntity: "Service/Entity",
         date: "Date",
         amount: "Amount",
-        status: "Status",
+        // statusGeneral: "Status", (consist with line 72)
         severity: "Severity",
 
         // Customer Profile Area
@@ -841,7 +841,7 @@ export const translations = {
         visionContent: "أن تصبح TableEase المنصة الأولى لحجوزات المطاعم في الأردن، ثم التوسع إقليميًا، مع الحفاظ على تجربة بسيطة للزبائن وأدوات فعالة للمطاعم.",
         partnership: "شراكتنا مع المطاعم والكافيهات",
         partnershipContent: "نحن لا نفرض حلولًا معقدة ولا عمولات مرهقة. نحن نبني شراكة طويلة الأمد مع المطاعم والكافيهات، لأن نجاح شركائنا هو أساس نجاحنا.",
-        status: "TableEase اليوم",
+        aboutStatus: "TableEase اليوم",
         statusContent: "TableEase في مرحلة الإطلاق الأولي داخل الأردن، ونعمل باستمرار على تطوير المنصة وتحسين التجربة بناءً على احتياجات المستخدمين والمطاعم.",
         startNow: "ابدأ الآن",
         exploreRest: "اكتشف المطاعم",
@@ -931,7 +931,7 @@ export const translations = {
         addTable: "إضافة طاولة",
         tableName: "اسم/رقم الطاولة",
         capacity: "السعة",
-        status: "الحالة",
+        // status: "الحالة", (duplicate)
         active: "نشط",
         disabled: "غير نشط",
         noTables: "لا توجد طاولات معرفة. أضف طاولتك الأولى!",
@@ -1078,7 +1078,7 @@ export const translations = {
         addNewOffer: "إضافة عرض جديد",
         active: "نشط",
         inactive: "غير نشط",
-        status: "الحالة",
+        // status: "الحالة", (duplicate)
         descriptionLabel: "الوصف",
         tableManagementDesc: "إدارة الطاولات الفردية، سعاتها، وإعدادات التخصيص الذكي.",
         pplShort: "شخص",
@@ -1205,7 +1205,7 @@ export const translations = {
         serviceEntity: "الخدمة / المنشأة",
         date: "التاريخ",
         amount: "المبلغ",
-        status: "الحالة",
+        // status: "الحالة", (duplicate)
         severity: "الخطورة",
 
         // Customer Profile Area

@@ -285,7 +285,7 @@ export default function About() {
                         </motion.div>
 
                         <h3 className="text-6xl md:text-[8rem] font-black text-white mb-10 tracking-tighter leading-none">
-                            {t.status}<span className="text-accent">.</span>
+                            {t.aboutStatus}<span className="text-accent">.</span>
                         </h3>
 
                         <p className="text-2xl md:text-3xl font-light text-white/40 mb-20 max-w-3xl mx-auto leading-tight italic">

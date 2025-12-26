@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const API_BASE_URL = 'http://localhost:5001';
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     useEffect(() => {
         // Check if user is already logged in

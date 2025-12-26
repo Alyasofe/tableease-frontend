@@ -4,7 +4,7 @@ const BookingContext = createContext();
 
 export function BookingProvider({ children }) {
     const [bookings, setBookings] = useState([]);
-    const API_BASE_URL = 'http://localhost:5001';
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     // Get token from localStorage
     const getToken = () => localStorage.getItem('token');

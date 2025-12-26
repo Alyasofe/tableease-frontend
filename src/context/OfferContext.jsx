@@ -8,7 +8,7 @@ export function OfferProvider({ children }) {
     const [loading, setLoading] = useState(false);
     const { token } = useAuth();
 
-    const API_URL = 'http://localhost:5001/api/offers';
+    const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/offers`;
 
     const fetchOffers = useCallback(async () => {
         setLoading(true);

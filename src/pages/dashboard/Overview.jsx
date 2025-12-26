@@ -24,7 +24,7 @@ export default function DashboardOverview() {
             </div>
             <div className="relative z-10">
                 <p className="text-gray-400 text-sm mb-1">{title}</p>
-                <h3 className="text-3xl font-bold font-heading text-white">{value}</h3>
+                <h3 className="text-3xl font-bold font-heading text-white" dir="ltr">{value}</h3>
                 <div className="flex items-center gap-1 mt-4 text-xs font-bold text-green-400">
                     <TrendingUp size={12} />
                     <span>{trend}</span>
@@ -37,15 +37,15 @@ export default function DashboardOverview() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-heading font-bold mb-2">{t.dashboard}</h1>
-                <p className="text-gray-400">Welcome back, here's what's happening today.</p>
+                <p className="text-gray-400 font-medium italic">{t.welcomeBack}, {t.todayOverview}</p>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <StatCard title={t.stats.totalBookings} value={totalBookings} icon={Users} color="text-blue-500" trend={`${recentGrowth} new`} />
-                <StatCard title={t.stats.revenue} value={`${revenue} JOD`} icon={DollarSign} color="text-green-500" trend="+0% from last week" />
-                <StatCard title={t.stats.views} value="0" icon={Eye} color="text-purple-500" trend="No data yet" />
-                <StatCard title={t.stats.rating} value="-" icon={Star} color="text-yellow-500" trend="No ratings" />
+                <StatCard title={t.stats.totalBookings} value={totalBookings} icon={Users} color="text-blue-500" trend={`${recentGrowth} ${t.stats.new}`} />
+                <StatCard title={t.stats.revenue} value={`${revenue} JOD`} icon={DollarSign} color="text-green-500" trend={t.stats.lastWeekTrend} />
+                <StatCard title={t.stats.views} value="0" icon={Eye} color="text-purple-500" trend={t.stats.noData} />
+                <StatCard title={t.stats.rating} value="-" icon={Star} color="text-yellow-500" trend={t.stats.noRatings} />
             </div>
 
             {/* Recent Activity Graph Placeholder */}

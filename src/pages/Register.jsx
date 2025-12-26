@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Store } from 'lucide-react';
 
@@ -20,6 +20,21 @@ export default function Register() {
         password: '',
         confirmPassword: ''
     });
+
+    const ErrorMsg = ({ msg }) => (
+        <AnimatePresence>
+            {msg && (
+                <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 px-1"
+                >
+                    {msg}
+                </motion.p>
+            )}
+        </AnimatePresence>
+    );
 
     const validatePassword = (password) => {
         // Strong Password: At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
@@ -62,24 +77,30 @@ export default function Register() {
 
         setLoading(true);
 
-        // Simulate Network Delay
-        setTimeout(() => {
-            const result = register({
-                name: formData.name,
-                email: formData.email,
-                password: formData.password, // In real app, hash this!
-                role: role
-            });
+        try {
+            // Use the new register function from AuthContext
+            const result = await register(
+                formData.name,
+                formData.email,
+                formData.password,
+                role
+            );
 
             if (!result.success) {
                 setError(result.message);
-                setLoading(false);
             } else {
-                setLoading(false);
-                // Redirect to login page after successful registration
-                navigate('/login');
+                // Redirect to dashboard for restaurant owners or home for customers
+                if (role === 'restaurant_owner') {
+                    navigate('/dashboard');
+                } else {
+                    navigate('/');
+                }
             }
-        }, 1500);
+        } catch (err) {
+            setError('An error occurred during registration');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -94,30 +115,33 @@ export default function Register() {
                 className="bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-lg relative z-10 border border-white/50"
             >
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-heading font-bold text-primary mb-2">{t.createAccount}</h1>
-                    <p className="text-gray-500">{t.joinMessage}</p>
-                    {error && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-bold mt-4"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
+                    <h1 className="text-3xl font-heading font-black text-primary mb-2 tracking-tight uppercase">{t.createAccount}</h1>
+                    <p className="text-gray-500 font-medium">{t.joinMessage}</p>
+                    <AnimatePresence>
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="bg-red-50 text-red-500 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest mt-4 border border-red-100"
+                            >
+                                {error}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Role Switcher */}
                 <div className="bg-gray-100 p-1 rounded-xl flex mb-6">
                     <button
-                        onClick={() => setRole('user')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'user' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setRole('customer')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'customer' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <User size={18} /> {t.loginAsDiner}
                     </button>
                     <button
-                        onClick={() => setRole('owner')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'owner' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setRole('restaurant_owner')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'restaurant_owner' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <Store size={18} /> {t.loginAsPartner}
                     </button>
@@ -125,90 +149,66 @@ export default function Register() {
 
                 <form onSubmit={handleRegister} noValidate className="space-y-4">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">{t.fullName}</label>
-                        <input
-                            type="text"
-                            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white outline-none transition-all ${fieldErrors.name
-                                ? 'border-red-500 focus:ring-red-200'
-                                : 'border-gray-200 focus:ring-accent'
-                                }`}
-                            onChange={e => {
-                                setFormData({ ...formData, name: e.target.value });
-                                if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' });
-                            }}
-                        />
-                        {fieldErrors.name && (
-                            <p className="text-red-500 text-xs mt-1 font-medium flex items-center gap-1">
-                                <span className="w-1 h-1 bg-red-500 rounded-full inline-block"></span>
-                                {fieldErrors.name}
-                            </p>
-                        )}
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2">{t.fullName}</label>
+                        <div className={`p-1 rounded-2xl border-2 transition-all ${fieldErrors.name ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                            <input
+                                type="text"
+                                className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
+                                onChange={e => {
+                                    setFormData({ ...formData, name: e.target.value });
+                                    if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' });
+                                }}
+                            />
+                        </div>
+                        <ErrorMsg msg={fieldErrors.name} />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">{t.email}</label>
-                        <input
-                            type="email"
-                            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white outline-none transition-all ${fieldErrors.email
-                                ? 'border-red-500 focus:ring-red-200'
-                                : 'border-gray-200 focus:ring-accent'
-                                }`}
-                            onChange={e => {
-                                setFormData({ ...formData, email: e.target.value });
-                                if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
-                            }}
-                            dir="ltr"
-                        />
-                        {fieldErrors.email && (
-                            <p className="text-red-500 text-xs mt-1 font-medium flex items-center gap-1">
-                                <span className="w-1 h-1 bg-red-500 rounded-full inline-block"></span>
-                                {fieldErrors.email}
-                            </p>
-                        )}
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2">{t.email}</label>
+                        <div className={`p-1 rounded-2xl border-2 transition-all ${fieldErrors.email ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                            <input
+                                type="email"
+                                className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
+                                onChange={e => {
+                                    setFormData({ ...formData, email: e.target.value });
+                                    if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
+                                }}
+                                dir="ltr"
+                            />
+                        </div>
+                        <ErrorMsg msg={fieldErrors.email} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">{t.password}</label>
-                            <input
-                                type="password"
-                                className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white outline-none transition-all ${fieldErrors.password
-                                    ? 'border-red-500 focus:ring-red-200'
-                                    : 'border-gray-200 focus:ring-accent'
-                                    }`}
-                                onChange={e => {
-                                    setFormData({ ...formData, password: e.target.value });
-                                    if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
-                                }}
-                                dir="ltr"
-                            />
-                            {fieldErrors.password && (
-                                <p className="text-red-500 text-xs mt-1 font-medium flex items-center gap-1">
-                                    <span className="w-1 h-1 bg-red-500 rounded-full inline-block"></span>
-                                    {fieldErrors.password}
-                                </p>
-                            )}
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2">{t.password}</label>
+                            <div className={`p-1 rounded-2xl border-2 transition-all ${fieldErrors.password ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                <input
+                                    type="password"
+                                    className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none text-xs"
+                                    onChange={e => {
+                                        setFormData({ ...formData, password: e.target.value });
+                                        if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
+                                    }}
+                                    dir="ltr"
+                                />
+                            </div>
+                            <ErrorMsg msg={fieldErrors.password} />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">{t.confirmPassword}</label>
-                            <input
-                                type="password"
-                                className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white outline-none transition-all ${fieldErrors.confirmPassword
-                                    ? 'border-red-500 focus:ring-red-200'
-                                    : 'border-gray-200 focus:ring-accent'
-                                    }`}
-                                onChange={e => {
-                                    setFormData({ ...formData, confirmPassword: e.target.value });
-                                    if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: '' });
-                                }}
-                                dir="ltr"
-                            />
-                            {fieldErrors.confirmPassword && (
-                                <p className="text-red-500 text-xs mt-1 font-medium flex items-center gap-1">
-                                    <span className="w-1 h-1 bg-red-500 rounded-full inline-block"></span>
-                                    {fieldErrors.confirmPassword}
-                                </p>
-                            )}
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2">{t.confirmPassword}</label>
+                            <div className={`p-1 rounded-2xl border-2 transition-all ${fieldErrors.confirmPassword ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                <input
+                                    type="password"
+                                    className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none text-xs"
+                                    onChange={e => {
+                                        setFormData({ ...formData, confirmPassword: e.target.value });
+                                        if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: '' });
+                                    }}
+                                    dir="ltr"
+                                />
+                            </div>
+                            <ErrorMsg msg={fieldErrors.confirmPassword} />
                         </div>
                     </div>
 

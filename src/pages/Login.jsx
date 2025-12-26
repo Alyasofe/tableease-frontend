@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, Store, User } from 'lucide-react';
 
@@ -13,21 +13,47 @@ export default function Login() {
     const [role, setRole] = useState('user'); // 'user' or 'owner'
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({ email: '', password: '' });
+    const [error, setError] = useState('');
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
 
-        // Simulation
-        setTimeout(() => {
-            login(formData.email, formData.password, role);
-            setLoading(false);
-            if (role === 'owner') {
-                navigate('/dashboard');
+        try {
+            const result = await login(formData.email, formData.password);
+
+            if (result.success) {
+                // Smart redirect based on user role
+                const userData = JSON.parse(localStorage.getItem('user'));
+
+                // Super Admin check by email
+                if (userData?.email === 'admin@tableease.com') {
+                    navigate('/dashboard');
+                    return;
+                }
+
+                // Role-based routing
+                switch (userData?.role) {
+                    case 'super_admin':
+                    case 'platform_admin':
+                    case 'restaurant_owner':
+                        navigate('/dashboard');
+                        break;
+                    case 'customer':
+                    default:
+                        // Customers go to their profile area
+                        navigate('/me');
+                        break;
+                }
             } else {
-                navigate('/');
+                setError(result.message || 'Login failed');
             }
-        }, 1500);
+        } catch (err) {
+            setError('An error occurred during login');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -49,14 +75,14 @@ export default function Login() {
                 {/* Role Switcher */}
                 <div className="bg-gray-100 p-1 rounded-xl flex mb-8">
                     <button
-                        onClick={() => setRole('user')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'user' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setRole('customer')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'customer' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <User size={18} /> {t.loginAsDiner || "Diner"}
                     </button>
                     <button
-                        onClick={() => setRole('owner')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'owner' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setRole('restaurant_owner')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${role === 'restaurant_owner' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <Store size={18} /> {t.loginAsPartner || "Restaurant"}
                     </button>
@@ -86,6 +112,19 @@ export default function Login() {
                             dir="ltr"
                         />
                     </div>
+
+                    <AnimatePresence>
+                        {error && (
+                            <motion.p
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="text-red-500 text-[10px] font-bold uppercase tracking-widest text-center"
+                            >
+                                {error === 'Login failed' ? t.loginFailed : (error === 'An error occurred during login' ? t.errorOccurred : error)}
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
 
                     <button
                         type="submit"

@@ -1,63 +1,91 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
-import { Save, Upload, Plus, X, Trash2 } from 'lucide-react';
+import { useRestaurants } from '../../context/RestaurantContext';
+import { useAuth } from '../../context/AuthContext';
+import { Save, Upload, Plus, X, Trash2, Grid } from 'lucide-react';
 
 export default function RestaurantManager() {
     const { t } = useLanguage();
+    const { user } = useAuth();
+    const { restaurants, loading: restaurantsLoading, createRestaurant, updateRestaurant } = useRestaurants();
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef(null);
 
     // State for form fields
-    const [details, setDetails] = useState(() => {
-        const saved = localStorage.getItem('restaurant_details');
-        return saved ? JSON.parse(saved) : {
-            nameEn: "",
-            nameAr: "",
-            cuisine: "Jordanian",
-            descriptionEn: "",
-            descriptionAr: "",
-            priceRange: "$$",
-            phone: "+962 79 000 0000",
-            openingHours: "12:00 PM - 12:00 AM"
-        };
+    const [details, setDetails] = useState({
+        nameEn: "",
+        nameAr: "",
+        cuisine: "Jordanian",
+        descriptionEn: "",
+        descriptionAr: "",
+        priceRange: "$$",
+        phone: "+962 79 000 0000",
+        openingHours: "12:00 PM - 12:00 AM"
     });
 
-    const [images, setImages] = useState(() => {
-        const saved = localStorage.getItem('restaurant_images');
-        return saved ? JSON.parse(saved) : [
-            "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=800&q=80"
-        ];
-    });
+    const [images, setImages] = useState([
+        "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=800&q=80"
+    ]);
 
-    const [amenities, setAmenities] = useState(() => {
-        const saved = localStorage.getItem('restaurant_amenities');
-        return saved ? JSON.parse(saved) : ['Wifi', 'Parking'];
-    });
+    const [amenities, setAmenities] = useState(['Wifi', 'Parking']);
 
-    const [menu, setMenu] = useState(() => {
-        const saved = localStorage.getItem('restaurant_menu');
-        return saved ? JSON.parse(saved) : [
-            { name: "Mansaf", price: "12.00 JD", description: "Traditional Jordanian dish", image: null },
-            { name: "Musakhan Rolls", price: "5.00 JD", description: "Chicken with sumac and onions", image: null }
-        ];
-    });
+    const [menu, setMenu] = useState([
+        { name: "Mansaf", price: "12.00 JD", description: "Traditional Jordanian dish", image: null },
+        { name: "Musakhan Rolls", price: "5.00 JD", description: "Chicken with sumac and onions", image: null }
+    ]);
 
-    const [offers, setOffers] = useState(() => {
-        const saved = localStorage.getItem('restaurant_offers');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [offers, setOffers] = useState([]);
 
-    const [capacities, setCapacities] = useState(() => {
-        const saved = localStorage.getItem('restaurant_capacities');
-        return saved ? JSON.parse(saved) : { main: 40, terrace: 20 };
-    });
-    const [location, setLocation] = useState(() => {
-        return localStorage.getItem('restaurant_location') || "Rainbow Street, Amman";
-    });
+    const [capacities, setCapacities] = useState({ main: 40, terrace: 20 });
+    const [location, setLocation] = useState("Rainbow Street, Amman");
 
     const [toast, setToast] = useState(null);
+    const [restaurantId, setRestaurantId] = useState(null);
 
-    const handleSave = () => {
+    // Load restaurant data if user already has one
+    useEffect(() => {
+        if (restaurants && user) {
+            // For admin users, we might want to show a selector
+            // For regular users, find their restaurant
+            const userRestaurant = restaurants.find(r => r.ownerId === user.id);
+            if (userRestaurant) {
+                setRestaurantId(userRestaurant._id);
+                setDetails({
+                    nameEn: userRestaurant.name || "",
+                    nameAr: userRestaurant.nameAr || "",
+                    cuisine: userRestaurant.cuisineType || "Jordanian",
+                    descriptionEn: userRestaurant.description || "",
+                    descriptionAr: userRestaurant.descriptionAr || "",
+                    priceRange: userRestaurant.priceRange || "$$",
+                    phone: userRestaurant.phone || "+962 79 000 0000",
+                    openingHours: userRestaurant.openingHours || "12:00 PM - 12:00 AM"
+                });
+
+                if (userRestaurant.imageUrl) {
+                    setImages([userRestaurant.imageUrl]);
+                }
+
+                if (userRestaurant.amenities) {
+                    setAmenities(userRestaurant.amenities);
+                }
+
+                if (userRestaurant.menu) {
+                    setMenu(userRestaurant.menu);
+                }
+
+                // Set location from address and city
+                if (userRestaurant.address && userRestaurant.city) {
+                    setLocation(`${userRestaurant.address}, ${userRestaurant.city}`);
+                } else if (userRestaurant.address) {
+                    setLocation(userRestaurant.address);
+                } else if (userRestaurant.city) {
+                    setLocation(userRestaurant.city);
+                }
+            }
+        }
+    }, [restaurants, user]);
+
+    const handleSave = async () => {
         if (!details.nameEn || !details.nameAr) {
             setToast({ type: 'error', message: "Please fill in at least the Restaurant Names (AR & EN)." });
             setTimeout(() => setToast(null), 3000);
@@ -65,24 +93,60 @@ export default function RestaurantManager() {
         }
 
         setLoading(true);
-        // Simulate API / DB Save
-        setTimeout(() => {
-            localStorage.setItem('restaurant_details', JSON.stringify(details));
-            localStorage.setItem('restaurant_capacities', JSON.stringify(capacities));
-            localStorage.setItem('restaurant_location', location);
-            localStorage.setItem('restaurant_images', JSON.stringify(images));
-            localStorage.setItem('restaurant_amenities', JSON.stringify(amenities));
-            localStorage.setItem('restaurant_menu', JSON.stringify(menu));
-            localStorage.setItem('restaurant_offers', JSON.stringify(offers));
+
+        // Prepare restaurant data
+        const [address, city] = location.split(', ').length > 1 ?
+            [location.split(', ')[0], location.split(', ')[1]] :
+            [location, ""];
+
+        const restaurantData = {
+            name: details.nameEn,
+            nameAr: details.nameAr,
+            description: details.descriptionEn,
+            descriptionAr: details.descriptionAr,
+            address: address,
+            city: city,
+            cuisineType: details.cuisine,
+            phone: details.phone,
+            imageUrl: images[0],
+            rating: 5.0,
+            priceRange: details.priceRange,
+            amenities: amenities,
+            menu: menu,
+            openingHours: details.openingHours
+        };
+
+        try {
+            let result;
+            if (restaurantId) {
+                // Update existing restaurant
+                result = await updateRestaurant(restaurantId, restaurantData);
+            } else {
+                // Create new restaurant
+                result = await createRestaurant(restaurantData);
+                if (result.success) {
+                    setRestaurantId(result.data._id);
+                }
+            }
+
+            if (result.success) {
+                setToast({ type: 'success', message: t.changesSaved });
+            } else {
+                setToast({ type: 'error', message: result.message || 'Failed to save restaurant' });
+            }
+        } catch (error) {
+            setToast({ type: 'error', message: 'An error occurred while saving' });
+        } finally {
             setLoading(false);
-            setToast({ type: 'success', message: t.changesSaved });
             setTimeout(() => setToast(null), 3000);
-        }, 1500);
+        }
     };
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // In a real implementation, you would upload to a cloud storage service
+            // For now, we'll use a data URL
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImages(prev => [...prev, reader.result]);
@@ -151,15 +215,15 @@ export default function RestaurantManager() {
                 <h1 className="text-3xl font-heading font-bold">{t.manageRestaurant}</h1>
                 <button
                     onClick={handleSave}
-                    disabled={loading}
+                    disabled={loading || restaurantsLoading}
                     className="flex items-center gap-2 bg-accent hover:bg-highlight text-white px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-70"
                 >
-                    {loading ? (
+                    {loading || restaurantsLoading ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     ) : (
                         <Save size={18} />
                     )}
-                    {loading ? "Saving..." : t.saveChanges}
+                    {loading || restaurantsLoading ? t.saving : t.saveChanges}
                 </button>
             </div>
 
@@ -201,21 +265,21 @@ export default function RestaurantManager() {
                                     onChange={e => setDetails({ ...details, cuisine: e.target.value })}
                                     className="w-full bg-secondary border border-white/10 rounded-lg px-4 py-3 text-white focus:border-accent outline-none"
                                 >
-                                    <option>Jordanian</option>
-                                    <option>Italian</option>
-                                    <option>International</option>
-                                    <option>Levantine</option>
-                                    <option>Cafe</option>
+                                    <option value="Jordanian">{t.cuisines?.Jordanian || 'Jordanian'}</option>
+                                    <option value="Italian">{t.cuisines?.Italian || 'Italian'}</option>
+                                    <option value="International">{t.cuisines?.International || 'International'}</option>
+                                    <option value="Levantine">{t.cuisines?.Levantine || 'Levantine'}</option>
+                                    <option value="Cafe">{t.cuisines?.Cafe || 'Cafe'}</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-gray-400 text-sm mb-2">{t.priceRange}</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { val: '$', label: t.priceLevels.budget },
-                                        { val: '$$', label: t.priceLevels.casual },
-                                        { val: '$$$', label: t.priceLevels.upscale },
-                                        { val: '$$$$', label: t.priceLevels.luxury }
+                                        { val: '$', label: t.priceLevels["$"] },
+                                        { val: '$$', label: t.priceLevels["$$"] },
+                                        { val: '$$$', label: t.priceLevels["$$$"] },
+                                        { val: '$$$$', label: t.priceLevels["$$$$"] }
                                     ].map((option) => (
                                         <button
                                             key={option.val}
@@ -256,7 +320,7 @@ export default function RestaurantManager() {
                                             setDetails({ ...details, openingHours: `${open} - ${close}` });
                                         }}
                                     />
-                                    <span className="text-gray-400">to</span>
+                                    <span className="text-gray-400">{t.to}</span>
                                     <input
                                         type="time"
                                         className="bg-transparent text-white outline-none w-full appearance-none"
@@ -267,7 +331,7 @@ export default function RestaurantManager() {
                                         }}
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1 pl-1">Current: {details.openingHours}</p>
+                                <p className="text-xs text-gray-500 mt-1 pl-1">{t.current}: {details.openingHours}</p>
                             </div>
                         </div>
 
@@ -309,14 +373,14 @@ export default function RestaurantManager() {
                                     </button>
                                 </span>
                             ))}
-                            {amenities.length === 0 && <span className="text-gray-500 text-sm italic py-2">No amenities selected. Add some below!</span>}
+                            {amenities.length === 0 && <span className="text-gray-500 text-sm italic py-2">{t.noAmenitiesSelected}</span>}
                         </div>
 
                         {/* Add Custom Amenity */}
                         <div className="flex gap-2 mb-6">
                             <input
                                 type="text"
-                                placeholder={t.addDish || "Add custom amenity"}
+                                placeholder={t.addAmenity || "Add custom amenity"}
                                 className="flex-1 bg-secondary border border-white/10 rounded-lg px-4 py-2 text-white focus:border-accent outline-none text-sm"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -345,7 +409,7 @@ export default function RestaurantManager() {
 
                         {/* Suggestions */}
                         <div>
-                            <p className="text-xs text-gray-400 mb-3 uppercase tracking-wider font-bold">Suggested</p>
+                            <p className="text-xs text-gray-400 mb-3 uppercase tracking-wider font-bold">{t.suggested}</p>
                             <div className="flex flex-wrap gap-2">
                                 {['Wifi', 'Parking', 'Outdoor Seating', 'Live Music', 'Valet', 'Wheelchair Accessible', 'Family Friendly', 'Shisha', 'Sea View'].map(amenity => (
                                     !amenities.includes(amenity) && (
@@ -430,67 +494,41 @@ export default function RestaurantManager() {
                     {/* Tables & Capacity */}
                     <div className="bg-primary border border-white/5 p-8 rounded-2xl">
                         <h3 className="text-xl font-bold mb-4">{t.seatingCapacity}</h3>
-                        <div className="flex items-center justify-between bg-secondary p-4 rounded-xl mb-2">
-                            <span>{t.mainHall}</span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setCapacities(prev => ({ ...prev, main: Math.max(0, prev.main - 1) }))}
-                                    className="w-8 h-8 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
-                                >
-                                    -
-                                </button>
-                                <span className="w-8 text-center">{capacities.main}</span>
-                                <button
-                                    onClick={() => setCapacities(prev => ({ ...prev, main: prev.main + 1 }))}
-                                    className="w-8 h-8 rounded bg-accent flex items-center justify-center hover:bg-highlight transition-all"
-                                >
-                                    +
-                                </button>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between bg-secondary p-4 rounded-xl">
-                            <span>{t.terrace}</span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setCapacities(prev => ({ ...prev, terrace: Math.max(0, prev.terrace - 1) }))}
-                                    className="w-8 h-8 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
-                                >
-                                    -
-                                </button>
-                                <span className="w-8 text-center">{capacities.terrace}</span>
-                                <button
-                                    onClick={() => setCapacities(prev => ({ ...prev, terrace: prev.terrace + 1 }))}
-                                    className="w-8 h-8 rounded bg-accent flex items-center justify-center hover:bg-highlight transition-all"
-                                >
-                                    +
-                                </button>
-                            </div>
-                        </div>
+                        <p className="text-gray-400 text-sm mb-6">
+                            {t.tableManagementDesc}
+                        </p>
+                        <button
+                            onClick={() => navigate('/dashboard/tables')}
+                            className="w-full py-4 bg-secondary border border-white/10 rounded-xl text-white font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Grid size={18} className="text-accent" />
+                            {t.tableManagement}
+                        </button>
                     </div>
 
                     {/* Manage Offers */}
                     <div className="bg-primary border border-white/5 p-8 rounded-2xl">
-                        <h3 className="text-xl font-bold mb-4">Special Offers</h3>
+                        <h3 className="text-xl font-bold mb-4">{t.specialOffers}</h3>
                         <div className="space-y-4">
                             {offers.map((offer, index) => (
                                 <div key={index} className="bg-secondary p-4 rounded-xl border border-white/5 relative">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
                                         <input
                                             type="text"
-                                            placeholder="Offer Title (e.g. Taco Tuesday)"
+                                            placeholder={t.offerTitlePlaceholder}
                                             value={offer.title}
                                             onChange={e => updateOffer(index, 'title', e.target.value)}
                                             className="bg-transparent border-b border-white/10 focus:border-accent outline-none text-white font-bold"
                                         />
                                         <input
                                             type="text"
-                                            placeholder="Discount (e.g. 20% OFF)"
+                                            placeholder={t.discountPlaceholder}
                                             value={offer.discount}
                                             onChange={e => updateOffer(index, 'discount', e.target.value)}
                                             className="bg-transparent border-b border-white/10 focus:border-accent outline-none text-accent font-bold"
                                         />
                                         <div className="flex items-center gap-2">
-                                            <label className="text-sm text-gray-400">Active</label>
+                                            <label className="text-sm text-gray-400">{t.active}</label>
                                             <input
                                                 type="checkbox"
                                                 checked={offer.active}
@@ -500,7 +538,7 @@ export default function RestaurantManager() {
                                         </div>
                                     </div>
                                     <textarea
-                                        placeholder="Offer details..."
+                                        placeholder={t.offerDetailsPlaceholder}
                                         rows="2"
                                         value={offer.description}
                                         onChange={e => updateOffer(index, 'description', e.target.value)}
@@ -518,7 +556,7 @@ export default function RestaurantManager() {
                                 onClick={addOffer}
                                 className="w-full py-3 border border-dashed border-white/20 rounded-xl text-gray-400 hover:text-white hover:border-accent transition-all flex items-center justify-center gap-2"
                             >
-                                <Plus size={16} /> Add New Offer
+                                <Plus size={16} /> {t.addNewOffer}
                             </button>
                         </div>
                     </div>

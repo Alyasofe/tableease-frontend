@@ -1,101 +1,157 @@
-import { createContext, useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    const login = (email, password, role = 'user') => {
-        // Simulate API Call
-        console.log(`Logging in as ${role}...`);
+    const API_BASE_URL = 'http://localhost:5001';
 
-        // 1. Retrieve "Database" of users
-        const usersDb = JSON.parse(localStorage.getItem('app_users') || '[]');
+    useEffect(() => {
+        // Check if user is already logged in
+        const storedToken = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
 
-        // 2. Check if user exists
-        let activeUser = usersDb.find(u => u.email === email);
-
-        if (!activeUser) {
-            // 3. Register new user if not found
-            activeUser = {
-                id: Date.now(),
-                name: role === 'owner' ? "Sufra Owner" : "Waseem", // Default mock name
-                email: email,
-                role: role,
-                avatar: null,
-                phone: ''
-            };
-            usersDb.push(activeUser);
-            localStorage.setItem('app_users', JSON.stringify(usersDb));
+        if (storedToken && userData) {
+            setToken(storedToken);
+            setUser(JSON.parse(userData));
+            setIsAuthenticated(true);
         }
+        setLoading(false);
+    }, []);
 
-        // 4. Set Session
-        setUser(activeUser);
-        localStorage.setItem('user', JSON.stringify(activeUser));
-        return true;
+    const login = async (email, password) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setToken(data.token);
+                setUser({ ...data.user, favorites: data.user.favorites || [] });
+                setIsAuthenticated(true);
+                return { success: true };
+            } else {
+                return { success: false, message: data.message };
+            }
+        } catch (error) {
+            return { success: false, message: 'An error occurred during login' };
+        }
+    };
+
+    const register = async (username, email, password, role = 'customer') => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password, role })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setToken(data.token);
+                setUser({ ...data.user, favorites: data.user.favorites || [] });
+                setIsAuthenticated(true);
+                return { success: true };
+            } else {
+                return { success: false, message: data.message };
+            }
+        } catch (error) {
+            return { success: false, message: 'An error occurred during registration' };
+        }
     };
 
     const logout = () => {
-        setUser(null);
+        localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
     };
 
-    const register = (userData) => {
-        const usersDb = JSON.parse(localStorage.getItem('app_users') || '[]');
+    const updateProfile = async (profileData) => {
+        try {
+            const storedToken = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${storedToken}`
+                },
+                body: JSON.stringify(profileData)
+            });
 
-        if (usersDb.some(u => u.email === userData.email)) {
-            return { success: false, message: "Email is already registered!" };
-        }
+            const data = await res.json();
 
-        if (usersDb.some(u => u.name === userData.name)) {
-            return { success: false, message: "Full Name is already taken!" };
-        }
-
-        const newUser = {
-            id: Date.now(),
-            name: userData.name,
-            email: userData.email,
-            role: userData.role,
-            avatar: null,
-            phone: '',
-            createdAt: new Date().toISOString()
-        };
-
-        usersDb.push(newUser);
-        localStorage.setItem('app_users', JSON.stringify(usersDb));
-
-        // Auto-login removed: User must sign in manually
-        // setUser(newUser);
-        // localStorage.setItem('user', JSON.stringify(newUser));
-
-        return { success: true };
-    };
-
-    const updateProfile = (updatedData) => {
-        setUser(prev => {
-            const newUser = { ...prev, ...updatedData };
-
-            // Update Session
-            localStorage.setItem('user', JSON.stringify(newUser));
-
-            // Update "Database"
-            const usersDb = JSON.parse(localStorage.getItem('app_users') || '[]');
-            const userIndex = usersDb.findIndex(u => u.email === prev.email);
-            if (userIndex !== -1) {
-                usersDb[userIndex] = { ...usersDb[userIndex], ...updatedData };
-                localStorage.setItem('app_users', JSON.stringify(usersDb));
+            if (res.ok) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setUser({ ...data.user, favorites: user?.favorites || [] });
+                return { success: true };
+            } else {
+                return { success: false, message: data.message };
             }
+        } catch (error) {
+            console.error('Update profile error:', error);
+            return { success: false, message: error.message || 'Failed to update profile' };
+        }
+    };
 
-            return newUser;
-        });
+    const toggleFavorite = async (restaurantId) => {
+        try {
+            const storedToken = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/api/users/favorites/toggle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${storedToken}`
+                },
+                body: JSON.stringify({ restaurantId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                const updatedUser = { ...user, favorites: data.favorites };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                return { success: true, isFavorite: data.isFavorite };
+            } else {
+                return { success: false, message: data.message };
+            }
+        } catch (error) {
+            console.error('Toggle favorite error:', error);
+            return { success: false, message: error.message || 'Failed to toggle favorite' };
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, updateProfile, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{
+            user,
+            token,
+            isAuthenticated,
+            loading,
+            login,
+            register,
+            logout,
+            updateProfile,
+            toggleFavorite
+        }}>
             {children}
         </AuthContext.Provider>
     );

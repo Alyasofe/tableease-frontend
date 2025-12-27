@@ -57,10 +57,10 @@ export default function Settings() {
 
     // Profile Edit State
     const [profileData, setProfileData] = useState({
-        name: user?.username || '',
+        username: user?.username || '',
         email: user?.email || '',
         phone: user?.phone || '',
-        avatar: user?.avatar || ''
+        avatar_url: user?.avatar_url || ''
     });
     const [fieldErrors, setFieldErrors] = useState({});
 
@@ -83,10 +83,10 @@ export default function Settings() {
     useEffect(() => {
         if (user) {
             setProfileData({
-                name: user.username || '',
+                username: user.username || '',
                 email: user.email || '',
                 phone: user.phone || '',
-                avatar: user.avatar || ''
+                avatar_url: user.avatar_url || ''
             });
         }
     }, [user]);
@@ -94,7 +94,7 @@ export default function Settings() {
     const handleSave = async () => {
         if (activeModal === 'profile') {
             const errors = {};
-            if (!profileData.name.trim()) errors.name = t.isRequired;
+            if (!profileData.username || !profileData.username.trim()) errors.username = t.isRequired;
             if (!profileData.email.trim()) {
                 errors.email = t.isRequired;
             } else if (!/\S+@\S+\.\S+/.test(profileData.email)) {
@@ -166,7 +166,7 @@ export default function Settings() {
                         <div className="flex items-center gap-4">
                             <div className="relative">
                                 <img
-                                    src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=random`}
+                                    src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=random`}
                                     alt="Profile"
                                     className="w-12 h-12 rounded-full border-2 border-accent object-cover"
                                 />
@@ -290,7 +290,7 @@ export default function Settings() {
                                     <div className="relative w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-accent to-blue-400 shadow-xl">
                                         <div className="w-full h-full rounded-full border-4 border-white overflow-hidden shadow-inner bg-gray-100">
                                             <img
-                                                src={profileData.avatar || `https://ui-avatars.com/api/?name=${profileData.name}&background=random`}
+                                                src={profileData.avatar_url || `https://ui-avatars.com/api/?name=${profileData.username}&background=random`}
                                                 alt="Live Preview"
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                             />
@@ -322,16 +322,16 @@ export default function Settings() {
                                         <button
                                             key={avatar.url}
                                             type="button"
-                                            onClick={() => setProfileData({ ...profileData, avatar: avatar.url })}
-                                            className={`relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-500 group ${profileData.avatar === avatar.url ? 'bg-white shadow-xl shadow-accent/10 border-2 border-accent scale-105 z-10' : 'border-2 border-transparent hover:bg-white/50'}`}
+                                            onClick={() => setProfileData({ ...profileData, avatar_url: avatar.url })}
+                                            className={`relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-500 group ${profileData.avatar_url === avatar.url ? 'bg-white shadow-xl shadow-accent/10 border-2 border-accent scale-105 z-10' : 'border-2 border-transparent hover:bg-white/50'}`}
                                         >
                                             <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center p-1">
                                                 <img src={avatar.url} alt={avatar.role} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" />
                                             </div>
-                                            <span className={`text-[9px] font-bold uppercase text-center leading-tight ${profileData.avatar === avatar.url ? 'text-accent' : 'text-gray-400'}`}>
+                                            <span className={`text-[9px] font-bold uppercase text-center leading-tight ${profileData.avatar_url === avatar.url ? 'text-accent' : 'text-gray-400'}`}>
                                                 {avatar.role}
                                             </span>
-                                            {profileData.avatar === avatar.url && (
+                                            {profileData.avatar_url === avatar.url && (
                                                 <div className="absolute top-2 right-2 bg-accent text-white p-0.5 rounded-full shadow-sm">
                                                     <Check size={8} />
                                                 </div>
@@ -349,8 +349,8 @@ export default function Settings() {
                                     type="text"
                                     placeholder={t.avatarPlaceholder}
                                     className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-accent/10 focus:border-accent outline-none text-gray-800 text-sm transition-all shadow-inner"
-                                    value={profileData.avatar && !profileData.avatar.includes('dicebear') ? profileData.avatar : ''}
-                                    onChange={(e) => setProfileData({ ...profileData, avatar: e.target.value })}
+                                    value={profileData.avatar_url && !profileData.avatar_url.includes('dicebear') ? profileData.avatar_url : ''}
+                                    onChange={(e) => setProfileData({ ...profileData, avatar_url: e.target.value })}
                                 />
                             </div>
                             <div>
@@ -359,14 +359,14 @@ export default function Settings() {
                                     <input
                                         type="text"
                                         className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none text-sm"
-                                        value={profileData.name}
+                                        value={profileData.username}
                                         onChange={e => {
-                                            setProfileData({ ...profileData, name: e.target.value });
-                                            if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' });
+                                            setProfileData({ ...profileData, username: e.target.value });
+                                            if (fieldErrors.username) setFieldErrors({ ...fieldErrors, username: '' });
                                         }}
                                     />
                                 </div>
-                                <ErrorMsg msg={fieldErrors.name} />
+                                <ErrorMsg msg={fieldErrors.username} />
                             </div>
                             <div>
                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1">{t.email}</label>

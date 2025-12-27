@@ -56,8 +56,8 @@ export default function CustomerProfile() {
 
         // Demo notifications
         setNotifications([
-            { id: 1, type: 'offer', title: t.newOfferAlert || 'New Offer!', message: '20% off at The Summit', time: '2h', read: false },
-            { id: 2, type: 'favorite', title: t.favoriteUpdate || 'Favorite Update', message: 'Café Cacao added new items', time: '1d', read: true },
+            { id: 1, type: 'offer', title: t.notifOfferTitle, message: t.notifOfferMsg, time: '2h', read: false },
+            { id: 2, type: 'favorite', title: t.notifFavTitle, message: t.notifFavMsg, time: '1d', read: true },
         ]);
     }, [restaurants, user?.favorites]);
 
@@ -104,63 +104,59 @@ export default function CustomerProfile() {
                     {/* Premium Welcome Card - Precision Engineered Layout */}
                     <motion.div
                         variants={itemVariants}
-                        className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-[2.5rem] p-8 md:p-10 lg:p-12 text-white relative overflow-hidden shadow-2xl border border-white/5"
+                        className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-[2.5rem] p-8 md:p-[3rem_0.6rem] text-white relative overflow-hidden shadow-2xl border border-white/5"
                     >
                         {/* High-End Background Effects */}
                         <div className="absolute -top-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
                         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-                        <div className="relative z-10 flex flex-col xl:flex-row items-center justify-between gap-12">
+                        <div className="relative z-10 grid grid-cols-1 xl:grid-cols-2 gap-8 items-center">
                             {/* User Profile Section */}
-                            <div className="flex flex-col md:flex-row items-center gap-8 w-full xl:w-auto">
-                                <div className="relative group">
-                                    <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-[2rem] border-4 border-white/10 overflow-hidden shadow-2xl bg-white/5 group-hover:border-accent/50 transition-colors">
+                            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-start">
+                                <div className="relative group shrink-0">
+                                    <div className="w-24 h-24 md:w-28 md:h-28 rounded-[2rem] border-4 border-white/10 overflow-hidden shadow-2xl bg-white/5 group-hover:border-accent/50 transition-colors">
                                         <img
-                                            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=D4A574&color=fff&size=200`}
+                                            src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=D4A574&color=fff&size=200`}
                                             alt="Profile"
                                             className="w-full h-full object-cover transition-transform group-hover:scale-110"
                                         />
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 lg:w-8 lg:h-8 bg-green-500 border-4 border-[#1a1a2e] rounded-full shadow-lg"></div>
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-[#1a1a2e] rounded-full shadow-lg"></div>
                                 </div>
 
-                                <div className="space-y-2 text-center md:text-start">
-                                    <div className="flex items-center justify-center md:justify-start gap-2">
-                                        <span className="px-3 py-1 bg-accent/20 text-accent text-[10px] font-black uppercase tracking-widest rounded-full">
+                                <div className="space-y-1 min-w-0 flex-1">
+                                    <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                                        <span className="px-3 py-1 bg-accent/20 text-accent text-[10px] font-black uppercase tracking-widest rounded-full shrink-0">
                                             {t.roleCustomer || 'Customer'}
                                         </span>
-                                        <span className="text-white/40 text-xs font-medium">{t.welcomeBack || 'Welcome Back'}</span>
+                                        <span className="text-white/40 text-xs font-medium shrink-0">{t.welcomeBack || 'Welcome Back'}</span>
                                     </div>
-                                    <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black font-heading tracking-tight leading-tight">
+                                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-black font-heading tracking-tight leading-tight break-words text-wrap">
                                         {user?.username || t.guest || 'Guest'}
                                     </h1>
-                                    <div className="flex items-center justify-center md:justify-start gap-2 text-white/30 text-sm">
-                                        <Mail size={14} />
-                                        <span className="truncate max-w-[200px]">{user?.email}</span>
+                                    <div className="flex items-center justify-center md:justify-start gap-2 text-white/40 text-sm font-medium">
+                                        <Mail size={14} className="shrink-0" />
+                                        <span className="break-all">{user?.email}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Separator Line */}
-                            <div className="hidden xl:block w-px h-24 bg-white/10 mx-6"></div>
-                            <div className="w-full h-px bg-white/10 xl:hidden"></div>
-
-                            {/* Balanced Stats Section */}
-                            <div className="grid grid-cols-2 gap-8 md:gap-16 w-full xl:w-auto">
-                                <div className="flex flex-col items-center xl:items-start gap-2">
-                                    <span className="text-4xl lg:text-5xl font-black text-white tabular-nums tracking-tighter">
+                            {/* Stats Section - Separated by Line/Space */}
+                            <div className="flex flex-col md:flex-row items-center justify-center xl:justify-end gap-6 md:gap-12 pt-6 xl:pt-0 border-t border-white/5 xl:border-t-0 xl:border-l xl:border-r-0 xl:rtl:border-l-0 xl:rtl:border-r border-white/10 xl:px-8">
+                                <div className="text-center">
+                                    <span className="block text-3xl md:text-4xl font-black text-white tabular-nums tracking-tight">
                                         {favorites.length}
                                     </span>
-                                    <span className="text-[11px] text-accent/60 uppercase tracking-[0.25em] font-black whitespace-nowrap">
+                                    <span className="text-[10px] text-accent/60 uppercase tracking-[0.2em] font-black">
                                         {t.favorites || 'Favorites'}
                                     </span>
                                 </div>
-
-                                <div className="flex flex-col items-center xl:items-start gap-2">
-                                    <span className="text-4xl lg:text-5xl font-black text-white tabular-nums tracking-tighter">
+                                <div className="w-px h-12 bg-white/10 hidden md:block"></div>
+                                <div className="text-center">
+                                    <span className="block text-3xl md:text-4xl font-black text-white tabular-nums tracking-tight">
                                         {recentlyViewed.length}
                                     </span>
-                                    <span className="text-[11px] text-accent/60 uppercase tracking-[0.25em] font-black whitespace-nowrap">
+                                    <span className="text-[10px] text-accent/60 uppercase tracking-[0.2em] font-black">
                                         {t.recentlyViewed || 'Viewed'}
                                     </span>
                                 </div>

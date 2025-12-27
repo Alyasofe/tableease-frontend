@@ -17,7 +17,7 @@ export default function Hero() {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-cream/40 z-10" />
                 <div className="absolute inset-x-0 inset-y-0 bg-gradient-to-r from-black/40 via-transparent to-black/40 z-10" />
                 <div className="absolute inset-0 bg-primary/20 mix-blend-overlay z-10" />
- 
+
                 <video
                     autoPlay
                     muted
@@ -35,7 +35,7 @@ export default function Hero() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                    className="text-6xl md:text-8xl font-heading font-black text-white mb-8 leading-[1.1] tracking-tight"
+                    className={`text-6xl md:text-8xl font-heading font-black text-white mb-8 leading-[1.1] ${language === 'ar' ? 'tracking-normal' : 'tracking-tight'}`}
                 >
                     {t.heroTitle}
                 </motion.h1>

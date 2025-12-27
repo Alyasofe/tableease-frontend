@@ -8,12 +8,16 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../context/ToastContext';
+import { supabase } from '../../supabaseClient';
 
 export default function AdminUsers() {
-    const { token } = useAuth();
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const { language, t } = useLanguage();
+    const { addToast } = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
@@ -23,6 +27,7 @@ export default function AdminUsers() {
         role: 'customer',
         status: 'active'
     });
+    const [activeFilter, setActiveFilter] = useState('all');
 
     useEffect(() => {
         fetchUsers();
@@ -31,13 +36,16 @@ export default function AdminUsers() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/admin/users', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const result = await res.json();
-            if (result.success) setUsers(result.data);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setUsers(data || []);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching users:", err);
+            setUsers([]);
         } finally {
             setLoading(false);
         }
@@ -56,45 +64,56 @@ export default function AdminUsers() {
 
     const handleSave = async (e) => {
         e.preventDefault();
+        setSaving(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/admin/users/${editingUser._id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-            const result = await res.json();
-            if (result.success) {
-                setIsModalOpen(false);
-                fetchUsers();
-            }
+            const { error } = await supabase
+                .from('profiles')
+                .update(formData)
+                .eq('id', editingUser.id);
+
+            if (error) throw error;
+
+            addToast(language === 'ar' ? 'تم حفظ التغييرات بنجاح!' : 'Changes saved successfully!', 'success');
+            setIsModalOpen(false);
+            fetchUsers();
         } catch (err) {
             console.error(err);
+            addToast(language === 'ar' ? 'فشل في حفظ التغييرات' : 'Failed to save changes', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
     const updateUserStatus = async (id, status) => {
         try {
-            await fetch(`http://localhost:5001/api/admin/users/${id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ status })
-            });
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            const statusMsg = status === 'active'
+                ? (language === 'ar' ? 'تم تفعيل الحساب بنجاح!' : 'Account activated successfully!')
+                : (language === 'ar' ? 'تم تعليق الحساب' : 'Account suspended');
+            addToast(statusMsg, 'success');
             fetchUsers();
         } catch (err) {
             console.error(err);
+            addToast(language === 'ar' ? 'فشل في تحديث الحالة' : 'Failed to update status', 'error');
         }
     };
 
-    const filtered = users.filter(u =>
-        u.username.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = users.filter(u => {
+        const matchesSearch = u.username?.toLowerCase().includes(search.toLowerCase()) ||
+            u.email?.toLowerCase().includes(search.toLowerCase());
+
+        if (activeFilter === 'pending') return matchesSearch && u.status === 'pending';
+        if (activeFilter === 'owners') return matchesSearch && u.role === 'restaurant_owner';
+        return matchesSearch;
+    });
+
+    const pendingCount = users.filter(u => u.status === 'pending').length;
 
     const RoleBadge = ({ role }) => {
         const colors = {
@@ -130,8 +149,34 @@ export default function AdminUsers() {
                 />
             </div>
 
+            {/* Filter Tabs */}
+            <div className="flex flex-wrap gap-3">
+                <button
+                    onClick={() => setActiveFilter('all')}
+                    className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeFilter === 'all' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                >
+                    {language === 'ar' ? 'الكل' : 'All Users'} ({users.length})
+                </button>
+                <button
+                    onClick={() => setActiveFilter('pending')}
+                    className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeFilter === 'pending' ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'}`}
+                >
+                    <span className="relative flex h-2 w-2">
+                        {pendingCount > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>}
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                    </span>
+                    {language === 'ar' ? 'قيد الانتظار' : 'Pending Approval'} ({pendingCount})
+                </button>
+                <button
+                    onClick={() => setActiveFilter('owners')}
+                    className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeFilter === 'owners' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                >
+                    {language === 'ar' ? 'أصحاب المطاعم' : 'Restaurant Owners'}
+                </button>
+            </div>
+
             <div className="bg-primary/40 backdrop-blur-xl border border-white/5 rounded-[3rem] overflow-hidden">
-                <table className="w-full text-left border-collapse" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                <table className={`w-full ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                     <thead>
                         <tr className="border-b border-white/5">
                             <th className={`px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500 ${language === 'ar' ? 'text-right' : ''}`}>{t.userDetails}</th>
@@ -144,13 +189,13 @@ export default function AdminUsers() {
                         {loading ? (
                             <tr><td colSpan="4" className="py-20 text-center"><div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto"></div></td></tr>
                         ) : filtered.map((u) => (
-                            <tr key={u._id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                            <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                 <td className="px-8 py-6">
                                     <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                                         <img src={`https://ui-avatars.com/api/?name=${u.username}&background=random`} className="w-12 h-12 rounded-2xl border-2 border-white/10" alt="" />
                                         <div className={language === 'ar' ? 'text-right' : ''}>
                                             <h4 className="text-white font-black text-sm">{u.username}</h4>
-                                            <p className={`text-gray-500 text-[10px] font-bold uppercase flex items-center gap-1 group-hover:text-accent transition-colors ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                                            <p className={`text-gray-500 text-[10px] font-bold uppercase flex items-center gap-1 group-hover:text-accent transition-all ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                                                 <Mail size={12} /> {u.email}
                                             </p>
                                         </div>
@@ -160,14 +205,14 @@ export default function AdminUsers() {
                                     <RoleBadge role={u.role} />
                                 </td>
                                 <td className={`px-8 py-6 ${language === 'ar' ? 'text-right' : ''}`}>
-                                    <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                                        <div className={`w-2 h-2 rounded-full ${u.status === 'suspended' ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                                        <span className={`text-[10px] font-black uppercase tracking-widest ${u.status === 'suspended' ? 'text-red-400' : 'text-green-400'}`}>
-                                            {u.status === 'suspended' ? t.suspend : t.active}
+                                    <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
+                                        <div className={`w-2 h-2 rounded-full ${u.status === 'suspended' ? 'bg-red-500' : u.status === 'pending' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${u.status === 'suspended' ? 'text-red-400' : u.status === 'pending' ? 'text-yellow-400' : 'text-green-400'}`}>
+                                            {u.status === 'suspended' ? (language === 'ar' ? 'موقوف' : 'Suspended') : u.status === 'pending' ? (language === 'ar' ? 'قيد المراجعة' : 'Pending') : (language === 'ar' ? 'نشط' : 'Active')}
                                         </span>
                                     </div>
                                 </td>
-                                <td className="px-8 py-6 text-right">
+                                <td className="px-8 py-6">
                                     <div className={`flex gap-2 shrink-0 ${language === 'ar' ? 'justify-start' : 'justify-end'}`}>
                                         <button
                                             onClick={() => handleEdit(u)}
@@ -175,10 +220,13 @@ export default function AdminUsers() {
                                         >
                                             <Edit size={16} />
                                         </button>
+                                        {u.status === 'pending' && (
+                                            <button onClick={() => updateUserStatus(u.id, 'active')} className="p-3 bg-accent/20 hover:bg-accent text-white rounded-xl transition-all"><UserCheck size={16} /></button>
+                                        )}
                                         {u.status === 'suspended' ? (
-                                            <button onClick={() => updateUserStatus(u._id, 'active')} className="p-3 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-all"><UserCheck size={16} /></button>
+                                            <button onClick={() => updateUserStatus(u.id, 'active')} className="p-3 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-all"><UserCheck size={16} /></button>
                                         ) : (
-                                            <button onClick={() => updateUserStatus(u._id, 'suspended')} className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all"><UserX size={16} /></button>
+                                            <button onClick={() => updateUserStatus(u.id, 'suspended')} className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all"><UserX size={16} /></button>
                                         )}
                                         <button className="p-3 bg-gray-500/10 hover:bg-accent/20 text-accent rounded-xl transition-all"><Shield size={16} /></button>
                                     </div>
@@ -217,26 +265,26 @@ export default function AdminUsers() {
 
                             <div className="p-10 space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">{language === 'ar' ? 'اسم المستخدم' : 'Username'}</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block text-start">{language === 'ar' ? 'اسم المستخدم' : 'Username'}</label>
                                     <input
                                         type="text" required
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent"
+                                        className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent ${language === 'ar' ? 'text-right' : ''}`}
                                         value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">{language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block text-start">{language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}</label>
                                     <input
                                         type="email" required
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent"
+                                        className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent ${language === 'ar' ? 'text-right' : ''}`}
                                         value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">{language === 'ar' ? 'الدور' : 'Role'}</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block text-start">{language === 'ar' ? 'الدور' : 'Role'}</label>
                                         <select
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent appearance-none"
+                                            className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent appearance-none ${language === 'ar' ? 'text-right' : ''}`}
                                             value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}
                                         >
                                             <option value="customer" className="bg-secondary">{language === 'ar' ? 'عميل' : 'Customer'}</option>
@@ -246,12 +294,13 @@ export default function AdminUsers() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">{language === 'ar' ? 'الحالة' : 'Status'}</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block text-start">{language === 'ar' ? 'الحالة' : 'Status'}</label>
                                         <select
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent appearance-none"
+                                            className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent appearance-none ${language === 'ar' ? 'text-right' : ''}`}
                                             value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}
                                         >
                                             <option value="active" className="bg-secondary">{language === 'ar' ? 'نشط' : 'Active'}</option>
+                                            <option value="pending" className="bg-secondary">{language === 'ar' ? 'قيد المراجعة' : 'Pending'}</option>
                                             <option value="suspended" className="bg-secondary">{language === 'ar' ? 'موقوف' : 'Suspended'}</option>
                                         </select>
                                     </div>
@@ -260,8 +309,12 @@ export default function AdminUsers() {
 
                             <div className={`p-10 bg-primary/20 flex gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white transition-colors">{t.cancel}</button>
-                                <button type="submit" className="flex-1 bg-accent text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
-                                    <Save size={18} /> {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+                                <button type="submit" disabled={saving} className="flex-1 bg-accent text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {saving ? (
+                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    ) : (
+                                        <><Save size={18} /> {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}</>
+                                    )}
                                 </button>
                             </div>
                         </motion.form>

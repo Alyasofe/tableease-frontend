@@ -11,7 +11,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useRestaurants } from '../../context/RestaurantContext';
 
 export default function AdminRestaurants() {
-    const { token } = useAuth();
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const { language, t } = useLanguage();
     const { restaurants, loading, fetchRestaurants, createRestaurant, updateRestaurant, deleteRestaurant } = useRestaurants();
 
@@ -81,7 +81,7 @@ export default function AdminRestaurants() {
 
     return (
         <div className="space-y-10">
-            <div className={`flex flex-col md:flex-row justify-between items-end gap-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                 <div className={language === 'ar' ? 'text-right' : ''}>
                     <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-4">
                         {t.manageEntities.split(' ')[0]} <span className="text-accent">{t.manageEntities.split(' ')[1]}</span>

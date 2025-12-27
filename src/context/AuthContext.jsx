@@ -1,156 +1,247 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : null;
+    });
+    const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('user'));
     const [loading, setLoading] = useState(true);
 
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-
     useEffect(() => {
-        // Check if user is already logged in
-        const storedToken = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        let mounted = true;
 
-        if (storedToken && userData) {
-            setToken(storedToken);
-            setUser(JSON.parse(userData));
-            setIsAuthenticated(true);
-        }
-        setLoading(false);
+        // 1. Initial Session Check
+        const checkSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session && mounted) {
+                    await fetchProfile(session.user.id);
+                } else if (!session && mounted) {
+                    setUser(null);
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('user');
+                }
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        checkSession();
+
+        // 2. Auth State Listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth Event:", event);
+            if (event === 'SIGNED_IN' && session) {
+                await fetchProfile(session.user.id);
+                setIsAuthenticated(true);
+            } else if (event === 'SIGNED_OUT' || !session) {
+                setUser(null);
+                setIsAuthenticated(false);
+                localStorage.removeItem('user');
+            }
+            if (mounted) setLoading(false);
+        });
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
+
+    const fetchProfile = async (userId) => {
+        try {
+            // Get profile data from our custom profiles table
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select(`
+                    *,
+                    user_favorites(restaurant_id)
+                `)
+                .eq('id', userId)
+                .single();
+
+            if (error) throw error;
+
+            // Format favorites for the app
+            const favorites = profile.user_favorites?.map(f => f.restaurant_id) || [];
+
+            const fullUser = {
+                ...profile,
+                favorites
+            };
+
+            setUser(fullUser);
+            setIsAuthenticated(true);
+
+            // Save to localStorage for persistence across reloads/pages
+            localStorage.setItem('user', JSON.stringify(fullUser));
+
+            return fullUser;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            return null;
+        }
+    };
 
     const login = async (email, password) => {
         try {
-            const res = await fetch(`${API_BASE_URL}/api/users/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email, password })
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
             });
 
-            const data = await res.json();
+            if (error) throw error;
 
-            if (res.ok) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setToken(data.token);
-                setUser({ ...data.user, favorites: data.user.favorites || [] });
-                setIsAuthenticated(true);
-                return { success: true };
-            } else {
-                return { success: false, message: data.message };
+            // Fetch profile immediately to ensure we have role for routing
+            if (data.session) {
+                const profile = await fetchProfile(data.session.user.id);
+                if (profile) return { success: true, data: profile };
             }
+
+            return { success: true };
         } catch (error) {
-            return { success: false, message: 'An error occurred during login' };
+            return { success: false, message: error.message };
         }
     };
 
-    const register = async (username, email, password, role = 'customer') => {
+    const register = async (username, email, password, role = 'customer', phone = '') => {
         try {
-            const res = await fetch(`${API_BASE_URL}/api/users/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, email, password, role })
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        username,
+                        role,
+                        phone
+                    }
+                }
             });
 
-            const data = await res.json();
+            if (error) throw error;
 
-            if (res.ok) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setToken(data.token);
-                setUser({ ...data.user, favorites: data.user.favorites || [] });
-                setIsAuthenticated(true);
-                return { success: true };
-            } else {
-                return { success: false, message: data.message };
+            // Update profile with phone number if provided
+            if (data.user && phone) {
+                await supabase.from('profiles').update({ phone }).eq('id', data.user.id);
             }
+
+            // Check if email confirmation is required
+            if (data.user && !data.session) {
+                return { success: true, confirmationRequired: true };
+            }
+
+            return { success: true };
         } catch (error) {
-            return { success: false, message: 'An error occurred during registration' };
+            return { success: false, message: error.message };
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
+    const logout = async () => {
+        // 1. Force clear application state first for immediate UI response
         setUser(null);
         setIsAuthenticated(false);
+        localStorage.removeItem('user');
+
+        // 2. Brute force clear any potential Supabase persisting titles
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        try {
+            // 3. Attempt standard sign out with the backend
+            const { error } = await supabase.auth.signOut();
+            if (error) console.warn("Supabase signOut warning:", error.message);
+        } catch (error) {
+            console.error("Supabase signOut error:", error);
+        }
     };
 
     const updateProfile = async (profileData) => {
         try {
-            const storedToken = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${storedToken}`
-                },
-                body: JSON.stringify(profileData)
-            });
+            const { data, error } = await supabase
+                .from('profiles')
+                .update(profileData)
+                .eq('id', user.id)
+                .select()
+                .single();
 
-            const data = await res.json();
+            if (error) throw error;
 
-            if (res.ok) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setUser({ ...data.user, favorites: user?.favorites || [] });
-                return { success: true };
-            } else {
-                return { success: false, message: data.message };
-            }
+            setUser(prev => ({ ...prev, ...data }));
+            return { success: true };
         } catch (error) {
-            console.error('Update profile error:', error);
-            return { success: false, message: error.message || 'Failed to update profile' };
+            return { success: false, message: error.message };
         }
     };
 
     const toggleFavorite = async (restaurantId) => {
         try {
-            const storedToken = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/api/users/favorites/toggle`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${storedToken}`
-                },
-                body: JSON.stringify({ restaurantId })
-            });
+            if (!user) return { success: false, message: "User not logged in" };
+            const isFavorite = user.favorites.includes(restaurantId);
 
-            const data = await res.json();
+            if (isFavorite) {
+                // Remove from favorites
+                const { error } = await supabase
+                    .from('user_favorites')
+                    .delete()
+                    .match({ user_id: user.id, restaurant_id: restaurantId });
 
-            if (res.ok) {
-                const updatedUser = { ...user, favorites: data.favorites };
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-                setUser(updatedUser);
-                return { success: true, isFavorite: data.isFavorite };
+                if (error) throw error;
+
+                setUser(prev => ({
+                    ...prev,
+                    favorites: prev.favorites.filter(id => id !== restaurantId)
+                }));
+                return { success: true, isFavorite: false };
             } else {
-                return { success: false, message: data.message };
+                // Add to favorites
+                const { error } = await supabase
+                    .from('user_favorites')
+                    .insert({ user_id: user.id, restaurant_id: restaurantId });
+
+                if (error) throw error;
+
+                setUser(prev => ({
+                    ...prev,
+                    favorites: [...prev.favorites, restaurantId]
+                }));
+                return { success: true, isFavorite: true };
             }
         } catch (error) {
-            console.error('Toggle favorite error:', error);
-            return { success: false, message: error.message || 'Failed to toggle favorite' };
+            return { success: false, message: error.message };
+        }
+    };
+
+    const resendVerification = async (email) => {
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: email
+            });
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: error.message };
         }
     };
 
     return (
         <AuthContext.Provider value={{
             user,
-            token,
             isAuthenticated,
             loading,
             login,
             register,
             logout,
             updateProfile,
-            toggleFavorite
+            toggleFavorite,
+            resendVerification
         }}>
             {children}
         </AuthContext.Provider>

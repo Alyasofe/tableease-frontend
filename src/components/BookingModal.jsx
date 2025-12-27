@@ -210,165 +210,169 @@ export default function BookingModal({ isOpen, onClose, restaurantId, restaurant
                     </div>
 
                     <div className="p-8 max-h-[80vh] overflow-y-auto premium-scrollbar">
-                        {!isAuthenticated ? (
-                            <div className="text-center py-6">
-                                <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-accent">
-                                    <Lock size={40} />
+                        {step === 1 && (
+                            <form onSubmit={handleDetailsSubmit} noValidate className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">{t.selectDate}</label>
+                                    <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.date ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                        <Calendar className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
+                                        <input
+                                            type="date"
+                                            required
+                                            className={`w-full ${language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none`}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, date: e.target.value });
+                                                if (errors.date) setErrors({ ...errors, date: '' });
+                                            }}
+                                        />
+                                    </div>
+                                    <ErrorMsg msg={errors.date} />
                                 </div>
-                                <h3 className="text-2xl font-black text-primary mb-2 uppercase tracking-tight">{t.loginTitle}</h3>
-                                <p className="text-gray-500 mb-8 font-medium">{t.loginToBook}</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">{t.time}</label>
+                                        <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.time ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                            <Clock className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
+                                            <select
+                                                required
+                                                className={`w-full ${language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none cursor-pointer appearance-none`}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, time: e.target.value });
+                                                    if (errors.time) setErrors({ ...errors, time: '' });
+                                                }}
+                                            >
+                                                <option value="">--:--</option>
+                                                <option value="18:00">6:00 PM</option>
+                                                <option value="19:00">7:00 PM</option>
+                                                <option value="20:00">8:00 PM</option>
+                                                <option value="21:00">9:00 PM</option>
+                                            </select>
+                                        </div>
+                                        <ErrorMsg msg={errors.time} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">{t.guests}</label>
+                                        <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.guests ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                            <Users className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="20"
+                                                defaultValue={2}
+                                                className={`w-full ${language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none`}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, guests: e.target.value });
+                                                    if (errors.guests) setErrors({ ...errors, guests: '' });
+                                                }}
+                                            />
+                                        </div>
+                                        <ErrorMsg msg={errors.guests} />
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-black transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 group">
+                                    {t.continue}
+                                    <ChevronRight size={18} className={`transition-transform duration-500 group-hover:translate-x-2 ${language === 'ar' ? 'rotate-180 group-hover:-translate-x-2' : ''}`} />
+                                </button>
+                            </form>
+                        )}
+
+                        {step === 2 && (
+                            <form onSubmit={handleContactSubmit} noValidate className="space-y-6">
+                                <div className="space-y-6">
+                                    <div className="group">
+                                        <div className={`p-1 rounded-2xl border-2 transition-all ${errors.name ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                            <input
+                                                type="text"
+                                                placeholder={t.fullName}
+                                                value={formData.name}
+                                                className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, name: e.target.value });
+                                                    if (errors.name) setErrors({ ...errors, name: '' });
+                                                }}
+                                            />
+                                        </div>
+                                        <ErrorMsg msg={errors.name} />
+                                    </div>
+
+                                    <div className="group">
+                                        <div className={`p-1 rounded-2xl border-2 transition-all ${errors.email ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                            <input
+                                                type="email"
+                                                placeholder={t.email}
+                                                value={formData.email}
+                                                className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, email: e.target.value });
+                                                    if (errors.email) setErrors({ ...errors, email: '' });
+                                                }}
+                                            />
+                                        </div>
+                                        <ErrorMsg msg={errors.email} />
+                                    </div>
+
+                                    <div className="group">
+                                        <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.phone ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                                            <Smartphone className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
+                                            <input
+                                                type="tel"
+                                                dir="ltr"
+                                                placeholder={t.phone}
+                                                className={`w-full ${language === 'ar' ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none`}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, phone: e.target.value });
+                                                    if (errors.phone) setErrors({ ...errors, phone: '' });
+                                                }}
+                                            />
+                                        </div>
+                                        <ErrorMsg msg={errors.phone} />
+                                    </div>
+                                </div>
+
                                 <div className="flex gap-4">
-                                    <button
-                                        onClick={onClose}
-                                        className="flex-1 py-4 rounded-xl font-black uppercase tracking-widest text-xs text-gray-500 hover:bg-gray-50 transition-colors"
-                                    >
-                                        {t.close}
+                                    <button type="button" onClick={() => setStep(1)} className="w-1/3 py-5 text-gray-400 font-black uppercase tracking-widest text-xs hover:text-primary hover:bg-gray-50 rounded-2xl transition-all">
+                                        {t.back}
                                     </button>
-                                    <button
-                                        onClick={() => navigate('/login')}
-                                        className="flex-1 bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all shadow-xl shadow-primary/20"
-                                    >
-                                        {t.signIn}
+                                    <button type="submit" className="w-2/3 bg-primary text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-black transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 group">
+                                        {t.continue}
+                                        <ChevronRight size={18} className={`transition-transform duration-500 group-hover:translate-x-2 ${language === 'ar' ? 'rotate-180 group-hover:-translate-x-2' : ''}`} />
                                     </button>
                                 </div>
-                            </div>
-                        ) : (
-                            <>
-                                {step === 1 && (
-                                    <form onSubmit={handleDetailsSubmit} noValidate className="space-y-6">
-                                        <div>
-                                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">{t.selectDate}</label>
-                                            <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.date ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
-                                                <Calendar className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
-                                                <input
-                                                    type="date"
-                                                    required
-                                                    className={`w-full ${language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none`}
-                                                    onChange={(e) => {
-                                                        setFormData({ ...formData, date: e.target.value });
-                                                        if (errors.date) setErrors({ ...errors, date: '' });
-                                                    }}
-                                                />
-                                            </div>
-                                            <ErrorMsg msg={errors.date} />
+                            </form>
+                        )}
+
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                {!isAuthenticated ? (
+                                    <div className="text-center py-6">
+                                        <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-accent">
+                                            <Lock size={40} />
                                         </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">{t.time}</label>
-                                                <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.time ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
-                                                    <Clock className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
-                                                    <select
-                                                        required
-                                                        className={`w-full ${language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none cursor-pointer appearance-none`}
-                                                        onChange={(e) => {
-                                                            setFormData({ ...formData, time: e.target.value });
-                                                            if (errors.time) setErrors({ ...errors, time: '' });
-                                                        }}
-                                                    >
-                                                        <option value="">--:--</option>
-                                                        <option value="18:00">6:00 PM</option>
-                                                        <option value="19:00">7:00 PM</option>
-                                                        <option value="20:00">8:00 PM</option>
-                                                        <option value="21:00">9:00 PM</option>
-                                                    </select>
-                                                </div>
-                                                <ErrorMsg msg={errors.time} />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">{t.guests}</label>
-                                                <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.guests ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
-                                                    <Users className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max="20"
-                                                        defaultValue={2}
-                                                        className={`w-full ${language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none`}
-                                                        onChange={(e) => {
-                                                            setFormData({ ...formData, guests: e.target.value });
-                                                            if (errors.guests) setErrors({ ...errors, guests: '' });
-                                                        }}
-                                                    />
-                                                </div>
-                                                <ErrorMsg msg={errors.guests} />
-                                            </div>
-                                        </div>
-
-                                        <button type="submit" className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-black transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 group">
-                                            {t.continue}
-                                            <ChevronRight size={18} className={`transition-transform duration-500 group-hover:translate-x-2 ${language === 'ar' ? 'rotate-180 group-hover:-translate-x-2' : ''}`} />
-                                        </button>
-                                    </form>
-                                )}
-
-                                {step === 2 && (
-                                    <form onSubmit={handleContactSubmit} noValidate className="space-y-6">
-                                        <div className="space-y-6">
-                                            <div className="group">
-                                                <div className={`p-1 rounded-2xl border-2 transition-all ${errors.name ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
-                                                    <input
-                                                        type="text"
-                                                        placeholder={t.fullName}
-                                                        value={formData.name}
-                                                        className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
-                                                        onChange={(e) => {
-                                                            setFormData({ ...formData, name: e.target.value });
-                                                            if (errors.name) setErrors({ ...errors, name: '' });
-                                                        }}
-                                                    />
-                                                </div>
-                                                <ErrorMsg msg={errors.name} />
-                                            </div>
-
-                                            <div className="group">
-                                                <div className={`p-1 rounded-2xl border-2 transition-all ${errors.email ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
-                                                    <input
-                                                        type="email"
-                                                        placeholder={t.email}
-                                                        value={formData.email}
-                                                        className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
-                                                        onChange={(e) => {
-                                                            setFormData({ ...formData, email: e.target.value });
-                                                            if (errors.email) setErrors({ ...errors, email: '' });
-                                                        }}
-                                                    />
-                                                </div>
-                                                <ErrorMsg msg={errors.email} />
-                                            </div>
-
-                                            <div className="group">
-                                                <div className={`relative p-1 rounded-2xl border-2 transition-all ${errors.phone ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
-                                                    <Smartphone className={`absolute top-4 text-gray-400 ${language === 'ar' ? 'right-4' : 'left-4'}`} size={18} />
-                                                    <input
-                                                        type="tel"
-                                                        dir="ltr"
-                                                        placeholder={t.phone}
-                                                        className={`w-full ${language === 'ar' ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4'} py-3 bg-transparent font-bold text-primary outline-none`}
-                                                        onChange={(e) => {
-                                                            setFormData({ ...formData, phone: e.target.value });
-                                                            if (errors.phone) setErrors({ ...errors, phone: '' });
-                                                        }}
-                                                    />
-                                                </div>
-                                                <ErrorMsg msg={errors.phone} />
-                                            </div>
-                                        </div>
-
+                                        <h3 className="text-2xl font-black text-primary mb-2 uppercase tracking-tight">{t.loginTitle}</h3>
+                                        <p className="text-gray-500 mb-8 font-medium">{t.loginToBook}</p>
                                         <div className="flex gap-4">
-                                            <button type="button" onClick={() => setStep(1)} className="w-1/3 py-5 text-gray-400 font-black uppercase tracking-widest text-[10px] hover:text-primary hover:bg-gray-50 rounded-2xl transition-all">
+                                            <button
+                                                onClick={() => setStep(2)}
+                                                className="flex-1 py-4 rounded-xl font-black uppercase tracking-widest text-xs text-gray-500 hover:bg-gray-50 transition-colors"
+                                            >
                                                 {t.back}
                                             </button>
-                                            <button type="submit" className="w-2/3 bg-primary text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-black transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 group">
-                                                {t.continue}
-                                                <ChevronRight size={18} className={`transition-transform duration-500 group-hover:translate-x-2 ${language === 'ar' ? 'rotate-180 group-hover:-translate-x-2' : ''}`} />
+                                            <button
+                                                onClick={() => {
+                                                    // Save current booking state to session/local storage if needed?
+                                                    // For now, just navigate.
+                                                    navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                                                }}
+                                                className="flex-1 bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all shadow-xl shadow-primary/20"
+                                            >
+                                                {t.signIn}
                                             </button>
                                         </div>
-                                    </form>
-                                )}
-
-                                {step === 3 && (
-                                    <div className="space-y-6">
+                                    </div>
+                                ) : (
+                                    <>
                                         <div className="text-center mb-6">
                                             <h4 className="text-xl font-black text-primary uppercase tracking-tight mb-2">{t.payment}</h4>
                                             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{t.paymentDesc}</p>
@@ -384,7 +388,7 @@ export default function BookingModal({ isOpen, onClose, restaurantId, restaurant
                                                     <Percent size={20} />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="text-[10px] font-black text-accent uppercase tracking-widest">{t.appliedOffer}</p>
+                                                    <p className="text-xs font-black text-accent uppercase tracking-widest">{t.appliedOffer}</p>
                                                     <h5 className="text-primary font-black">{language === 'ar' ? appliedOffer.titleAr : appliedOffer.title}</h5>
                                                 </div>
                                                 <div className="text-right">
@@ -414,111 +418,111 @@ export default function BookingModal({ isOpen, onClose, restaurantId, restaurant
 
                                         <PaymentForm amount={calculateTotal()} onSuccess={handlePaymentSuccess} />
 
-                                        <button onClick={() => setStep(2)} className="w-full py-4 text-gray-400 font-black uppercase tracking-widest text-[10px] hover:text-primary transition-colors">
+                                        <button onClick={() => setStep(2)} className="w-full py-4 text-gray-400 font-black uppercase tracking-widest text-xs hover:text-primary transition-colors">
                                             {t.back}
                                         </button>
-                                    </div>
+                                    </>
                                 )}
+                            </div>
+                        )}
 
-                                {step === 4 && (
-                                    <div className="py-2">
-                                        {bookingResult === 'success' ? (
-                                            <motion.div
-                                                initial={{ scale: 0.8, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                className="relative"
-                                            >
-                                                {/* Ticket Body */}
-                                                <div className="bg-primary rounded-[2.5rem] p-1 shadow-2xl relative overflow-hidden">
-                                                    {/* Top Section */}
-                                                    <div className="bg-white rounded-t-[2.2rem] p-8 pb-4 text-center">
-                                                        <motion.div
-                                                            initial={{ scale: 0 }}
-                                                            animate={{ scale: 1 }}
-                                                            transition={{ type: "spring", damping: 10, delay: 0.2 }}
-                                                            className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white shadow-2xl shadow-green-500/30"
-                                                        >
-                                                            <Check size={40} strokeWidth={3} />
-                                                        </motion.div>
-                                                        <h3 className="text-3xl font-black text-primary uppercase tracking-tight mb-2">
-                                                            {language === 'ar' ? "تم الحجز بنجاح!" : "Booking Success!"}
-                                                        </h3>
-                                                        <p className="text-gray-400 text-xs font-black uppercase tracking-widest">{restaurantName}</p>
+                        {step === 4 && (
+                            <div className="py-2">
+                                {bookingResult === 'success' ? (
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        className="relative"
+                                    >
+                                        {/* Ticket Body */}
+                                        <div className="bg-primary rounded-[2.5rem] p-1 shadow-2xl relative overflow-hidden">
+                                            {/* Top Section */}
+                                            <div className="bg-white rounded-t-[2.2rem] p-8 pb-4 text-center">
+                                                <motion.div
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    transition={{ type: "spring", damping: 10, delay: 0.2 }}
+                                                    className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white shadow-2xl shadow-green-500/30"
+                                                >
+                                                    <Check size={40} strokeWidth={3} />
+                                                </motion.div>
+                                                <h3 className="text-3xl font-black text-primary uppercase tracking-tight mb-2">
+                                                    {language === 'ar' ? "تم الحجز بنجاح!" : "Booking Success!"}
+                                                </h3>
+                                                <p className="text-gray-400 text-xs font-black uppercase tracking-widest">{restaurantName}</p>
+                                            </div>
+
+                                            {/* Tear Effect (Line) */}
+                                            <div className="flex items-center justify-between px-1 relative h-6 bg-white">
+                                                <div className="w-6 h-6 bg-primary rounded-full absolute -left-3" />
+                                                <div className="flex-1 border-t-2 border-dashed border-gray-100 mx-4" />
+                                                <div className="w-6 h-6 bg-primary rounded-full absolute -right-3" />
+                                            </div>
+
+                                            {/* Bottom Section */}
+                                            <div className="bg-white rounded-b-[2.2rem] p-8 pt-4">
+                                                <div className="grid grid-cols-3 gap-4 mb-8">
+                                                    <div className="text-center">
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.date}</p>
+                                                        <p className="text-primary font-bold text-sm">{formData.date}</p>
                                                     </div>
-
-                                                    {/* Tear Effect (Line) */}
-                                                    <div className="flex items-center justify-between px-1 relative h-6 bg-white">
-                                                        <div className="w-6 h-6 bg-primary rounded-full absolute -left-3" />
-                                                        <div className="flex-1 border-t-2 border-dashed border-gray-100 mx-4" />
-                                                        <div className="w-6 h-6 bg-primary rounded-full absolute -right-3" />
+                                                    <div className="text-center border-x border-gray-100">
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.time}</p>
+                                                        <p className="text-primary font-bold text-sm tracking-tight">{formData.time}</p>
                                                     </div>
-
-                                                    {/* Bottom Section */}
-                                                    <div className="bg-white rounded-b-[2.2rem] p-8 pt-4">
-                                                        <div className="grid grid-cols-3 gap-4 mb-8">
-                                                            <div className="text-center">
-                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t.date}</p>
-                                                                <p className="text-primary font-bold text-sm">{formData.date}</p>
-                                                            </div>
-                                                            <div className="text-center border-x border-gray-100">
-                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t.time}</p>
-                                                                <p className="text-primary font-bold text-sm tracking-tight">{formData.time}</p>
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t.guests}</p>
-                                                                <p className="text-primary font-bold text-sm">{formData.guests}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        {appliedOffer && (
-                                                            <div className="bg-accent/5 rounded-2xl p-4 border border-accent/20 mb-8 flex items-center justify-between">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white">
-                                                                        <Percent size={14} />
-                                                                    </div>
-                                                                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">
-                                                                        {language === 'ar' ? appliedOffer.titleAr : appliedOffer.title}
-                                                                    </span>
-                                                                </div>
-                                                                <span className="text-accent font-black text-xs">
-                                                                    {language === 'ar' ? appliedOffer.discountAr : appliedOffer.discount}
-                                                                </span>
-                                                            </div>
-                                                        )}
-
-                                                        <div className="w-24 h-24 bg-gray-50 rounded-2xl mx-auto mb-8 flex items-center justify-center border-2 border-dashed border-gray-200">
-                                                            <Smartphone className="text-gray-300" size={32} />
-                                                        </div>
-
-                                                        <p className="text-center text-gray-500 text-[10px] font-bold mb-8 uppercase tracking-[0.2em]">
-                                                            {language === 'ar' ? "صور الشاشة لتأكيد حجزك" : "Screenshot this to save your reservation"}
-                                                        </p>
-
-                                                        <button onClick={onClose} className="w-full bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all shadow-xl shadow-primary/20">
-                                                            {t.done || "Done"}
-                                                        </button>
+                                                    <div className="text-center">
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.guests}</p>
+                                                        <p className="text-primary font-bold text-sm">{formData.guests}</p>
                                                     </div>
                                                 </div>
-                                            </motion.div>
-                                        ) : (
-                                            <div className="text-center py-8">
-                                                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
-                                                    <X size={48} />
+
+                                                {appliedOffer && (
+                                                    <div className="bg-accent/5 rounded-2xl p-4 border border-accent/20 mb-8 flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white">
+                                                                <Percent size={14} />
+                                                            </div>
+                                                            <span className="text-xs font-black text-primary uppercase tracking-widest">
+                                                                {language === 'ar' ? appliedOffer.titleAr : appliedOffer.title}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-accent font-black text-xs">
+                                                            {language === 'ar' ? appliedOffer.discountAr : appliedOffer.discount}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="w-24 h-24 bg-gray-50 rounded-2xl mx-auto mb-8 flex items-center justify-center border-2 border-dashed border-gray-200">
+                                                    <Smartphone className="text-gray-300" size={32} />
                                                 </div>
-                                                <h3 className="text-2xl font-bold text-red-600 mb-2">{t.bookingFailed}</h3>
-                                                <p className="text-gray-500 mb-6 px-4">
-                                                    {errors.submit === "No suitable tables available for this time and guest count."
-                                                        ? t.noSuitableTablesFound
-                                                        : (errors.submit || t.bookingError)}
+
+                                                <p className="text-center text-gray-500 text-xs font-bold mb-8 uppercase tracking-[0.2em]">
+                                                    {language === 'ar' ? "صور الشاشة لتأكيد حجزك" : "Screenshot this to save your reservation"}
                                                 </p>
-                                                <button onClick={onClose} className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary w-full">
+
+                                                <button onClick={onClose} className="w-full bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all shadow-xl shadow-primary/20">
                                                     {t.done || "Done"}
                                                 </button>
                                             </div>
-                                        )}
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
+                                            <X size={48} />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-red-600 mb-2">{t.bookingFailed}</h3>
+                                        <p className="text-gray-500 mb-6 px-4">
+                                            {errors.submit === "No suitable tables available for this time and guest count."
+                                                ? t.noSuitableTablesFound
+                                                : (errors.submit || t.bookingError)}
+                                        </p>
+                                        <button onClick={onClose} className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary w-full">
+                                            {t.done || "Done"}
+                                        </button>
                                     </div>
                                 )}
-                            </>
+                            </div>
                         )}
                     </div>
                 </motion.div>

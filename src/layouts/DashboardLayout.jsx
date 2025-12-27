@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -5,14 +6,20 @@ import { LayoutDashboard, Store, Calendar, Settings, LogOut, Home, Grid, Users, 
 
 export default function DashboardLayout() {
     const { t, language } = useLanguage();
-    const { logout, user } = useAuth();
+    const { logout, user, resendVerification } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate('/login');
     };
+
+    useEffect(() => {
+        if (user && user.role === 'restaurant_owner' && user.status === 'pending') {
+            navigate('/pending-approval');
+        }
+    }, [user, navigate]);
 
     const isActive = (path) => location.pathname === path;
 
@@ -30,7 +37,7 @@ export default function DashboardLayout() {
     );
 
     return (
-        <div className="min-h-screen bg-secondary flex text-white" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="min-h-screen bg-secondary flex flex-col text-white" dir={language === 'ar' ? 'rtl' : 'ltr'}>
             {/* Sidebar */}
             <aside className={`w-64 bg-primary ${language === 'ar' ? 'border-l right-0' : 'border-r left-0'} border-white/5 hidden md:flex flex-col fixed h-full z-20`}>
                 <div className="p-8">
@@ -64,7 +71,7 @@ export default function DashboardLayout() {
                         <>
                             <SidebarItem to="/dashboard" icon={LayoutDashboard} label={t.overview} />
                             <SidebarItem to="/dashboard/restaurant" icon={Store} label={t.myRestaurant} />
-                            <SidebarItem to="/dashboard/tables" icon={Grid} label={t.tableManagement} />
+                            <SidebarItem to="/dashboard/offers" icon={Tag} label={t.myOffers} />
                             <SidebarItem to="/dashboard/bookings" icon={Calendar} label={t.bookings} />
                         </>
                     ) : (
@@ -90,7 +97,7 @@ export default function DashboardLayout() {
                 <div className="p-4 border-t border-white/5">
                     <div className="flex items-center gap-3 px-4 py-4 mb-2 bg-white/5 rounded-xl">
                         <img
-                            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || user?.name}&background=random`}
+                            src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.username || user?.name}&background=random`}
                             className="w-10 h-10 rounded-full border-2 border-accent object-cover"
                             alt="Profile"
                         />

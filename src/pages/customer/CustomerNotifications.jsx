@@ -1,96 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { Bell, Tag, Heart, CheckCircle, Trash2, Settings } from 'lucide-react';
 
 export default function CustomerNotifications() {
     const { t } = useLanguage();
-    const [notifications, setNotifications] = useState([]);
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [filter, setFilter] = useState('all');
-
-    useEffect(() => {
-        // Load notifications (demo data for now)
-        setNotifications([
-            {
-                id: 1,
-                type: 'offer',
-                title: t.newOfferAlert || 'New Exclusive Offer!',
-                message: '20% off at The Summit this weekend only!',
-                time: '2 hours ago',
-                read: false,
-                actionUrl: '/offers'
-            },
-            {
-                id: 2,
-                type: 'favorite',
-                title: t.favoriteUpdate || 'Favorite Update',
-                message: 'Café Cacao added new items to their menu',
-                time: '1 day ago',
-                read: false,
-                actionUrl: '/restaurant/123'
-            },
-            {
-                id: 3,
-                type: 'offer',
-                title: t.offerExpiring || 'Offer Expiring Soon!',
-                message: 'Last chance: 15% off at Levant Kitchen ends tomorrow',
-                time: '2 days ago',
-                read: true,
-                actionUrl: '/offers'
-            },
-            {
-                id: 4,
-                type: 'system',
-                title: t.welcomeToTableEase || 'Welcome to TableEase!',
-                message: 'Start exploring amazing restaurants and cafes near you',
-                time: '3 days ago',
-                read: true,
-                actionUrl: '/explore'
-            },
-        ]);
-    }, [t]);
-
-    const markAsRead = (id) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        );
-    };
-
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    };
-
-    const deleteNotification = (id) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    };
-
-    const clearAll = () => {
-        setNotifications([]);
-    };
 
     const filteredNotifications = filter === 'all'
         ? notifications
         : filter === 'unread'
-            ? notifications.filter(n => !n.read)
+            ? notifications.filter(n => !n.is_read)
             : notifications.filter(n => n.type === filter);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
-
     const getNotificationIcon = (type) => {
-        switch (type) {
-            case 'offer': return <Tag size={18} />;
-            case 'favorite': return <Heart size={18} />;
-            default: return <Bell size={18} />;
-        }
+        // Simple mapping based on type string used in backend
+        if (type.includes('offer')) return <Tag size={18} />;
+        if (type.includes('booking')) return <CheckCircle size={18} />;
+        return <Bell size={18} />;
     };
 
     const getNotificationColor = (type) => {
-        switch (type) {
-            case 'offer': return 'bg-green-100 text-green-600';
-            case 'favorite': return 'bg-red-100 text-red-500';
-            default: return 'bg-accent/10 text-accent';
-        }
+        if (type.includes('booking_confirmed')) return 'bg-green-100 text-green-600';
+        if (type.includes('booking_cancelled') || type.includes('booking_rejected')) return 'bg-red-100 text-red-500';
+        return 'bg-accent/10 text-accent';
     };
+
+
 
     return (
         <motion.div
@@ -137,8 +75,8 @@ export default function CustomerNotifications() {
                         key={f.value}
                         onClick={() => setFilter(f.value)}
                         className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${filter === f.value
-                                ? 'bg-primary text-white'
-                                : 'bg-white text-gray-500 border border-gray-100 hover:border-primary/20'
+                            ? 'bg-primary text-white'
+                            : 'bg-white text-gray-500 border border-gray-100 hover:border-primary/20'
                             }`}
                     >
                         {f.label}
@@ -167,8 +105,8 @@ export default function CustomerNotifications() {
                             transition={{ delay: index * 0.05 }}
                             onClick={() => markAsRead(notif.id)}
                             className={`bg-white rounded-2xl p-4 border cursor-pointer transition-all hover:shadow-md ${notif.read
-                                    ? 'border-gray-100'
-                                    : 'border-accent/30 bg-gradient-to-r from-accent/5 to-transparent'
+                                ? 'border-gray-100'
+                                : 'border-accent/30 bg-gradient-to-r from-accent/5 to-transparent'
                                 }`}
                         >
                             <div className="flex items-start gap-3">
@@ -189,15 +127,6 @@ export default function CustomerNotifications() {
                                     </div>
                                     <div className="flex items-center justify-between mt-3">
                                         <span className="text-xs text-gray-400">{notif.time}</span>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteNotification(notif.id);
-                                            }}
-                                            className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -206,21 +135,7 @@ export default function CustomerNotifications() {
                 </div>
             )}
 
-            {/* Clear All */}
-            {notifications.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center pt-4"
-                >
-                    <button
-                        onClick={clearAll}
-                        className="text-gray-400 text-sm hover:text-red-500 transition-colors"
-                    >
-                        {t.clearAllNotifications || 'Clear all notifications'}
-                    </button>
-                </motion.div>
-            )}
+
         </motion.div>
     );
 }

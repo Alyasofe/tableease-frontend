@@ -7,9 +7,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { supabase } from '../../supabaseClient';
 
 export default function PlatformDashboard() {
-    const { token, user } = useAuth();
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const { t, language } = useLanguage();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -20,12 +21,28 @@ export default function PlatformDashboard() {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('http://localhost:5001/api/admin/stats', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const result = await res.json();
-            if (result.success) {
-                setStats(result.data);
+            setLoading(true);
+            const { data, error } = await supabase.rpc('get_platform_stats');
+
+            if (error || !data) {
+                // Fallback to manual counts if RPC is missing
+                const { count: resCount } = await supabase.from('restaurants').select('*', { count: 'exact', head: true });
+                const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+                const { count: offerCount } = await supabase.from('offers').select('*', { count: 'exact', head: true });
+                const { data: recentUsers } = await supabase.from('profiles').select('username, email, created_at').order('created_at', { ascending: false }).limit(3);
+                const { data: visitData } = await supabase.from('restaurants').select('visits');
+                const totalVisits = visitData?.reduce((acc, curr) => acc + (curr.visits || 0), 0) || 0;
+
+                setStats({
+                    restaurants: resCount || 0,
+                    cafes: 0,
+                    users: userCount || 0,
+                    activeOffers: offerCount || 0,
+                    visits: totalVisits,
+                    recentUsers: recentUsers?.map(u => ({ username: u.username, email: u.email, createdAt: u.created_at })) || []
+                });
+            } else {
+                setStats(data);
             }
         } catch (err) {
             console.error(err);
@@ -40,7 +57,7 @@ export default function PlatformDashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-primary/40 backdrop-blur-xl border border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-accent/30 transition-all"
         >
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}/10 blur-[60px] rounded-full group-hover:bg-${color}/20 transition-all`}></div>
+            <div className={`absolute top-0 ${language === 'ar' ? 'left-0' : 'right-0'} w-32 h-32 bg-${color}/10 blur-[60px] rounded-full group-hover:bg-${color}/20 transition-all`}></div>
             <div className="relative z-10">
                 <div className={`flex justify-between items-start mb-6 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                     <div className={`w-14 h-14 rounded-2xl bg-${color}/20 flex items-center justify-center text-${color}`}>
@@ -69,13 +86,13 @@ export default function PlatformDashboard() {
     return (
         <div className="space-y-12 pb-20">
             {/* Header Area */}
-            <div className={`flex flex-col md:flex-row justify-between items-end gap-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                 <div className={language === 'ar' ? 'text-right' : ''}>
                     <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase leading-none mb-4">
-                        {t.platformControl.split(' ')[0]} <span className="text-accent">{t.platformControl.split(' ')[1]}</span>
+                        {language === 'ar' ? 'إدارة' : 'Platform'} <span className="text-accent">{language === 'ar' ? 'المنصة' : 'Control'}</span>
                     </h1>
                     <p className="text-gray-400 font-medium tracking-wide">
-                        {language === 'ar' ? `أهلاً بك مجدداً. إليك نظرة على نظام TableEase.` : `Welcome back, Owner. Here's a snapshot of the TableEase ecosystem.`}
+                        {language === 'ar' ? `أهلاً بك مجدداً. إليك نظرة على نظام TableEase.` : `Welcome back, Admin. Here's a snapshot of the TableEase ecosystem.`}
                     </p>
                 </div>
                 <div className="flex gap-4">
@@ -90,11 +107,11 @@ export default function PlatformDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <StatCard
                     title={t.totalRestaurants}
-                    value={stats?.restaurants + stats?.cafes || 0}
+                    value={(stats?.restaurants || 0) + (stats?.cafes || 0)}
                     icon={Store}
                     color="accent"
                     trend={+12}
-                    subtitle={`${stats?.restaurants} ${t.restaurant.toUpperCase()}S / ${stats?.cafes} ${t.cafe.toUpperCase()}S`}
+                    subtitle={language === 'ar' ? `${stats?.restaurants || 0} مطعم / ${stats?.cafes || 0} كافيه` : `${stats?.restaurants || 0} RESTAURANTS / ${stats?.cafes || 0} CAFES`}
                 />
                 <StatCard
                     title={t.activeUsers}
@@ -134,12 +151,14 @@ export default function PlatformDashboard() {
                     <div className="space-y-6">
                         {stats?.recentUsers?.map((u, i) => (
                             <div key={i} className={`flex items-center gap-4 group ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
-                                <img src={`https://ui-avatars.com/api/?name=${u.username}&background=random`} className="w-12 h-12 rounded-2xl border-2 border-white/10" alt="" />
+                                <div className="w-12 h-12 rounded-2xl border-2 border-white/10 flex items-center justify-center bg-white/5 font-black text-accent uppercase">
+                                    {u.username?.substring(0, 2) || 'U'}
+                                </div>
                                 <div className="flex-1">
                                     <h4 className="text-white font-black text-sm">{u.username}</h4>
-                                    <p className="text-gray-500 text-[10px] font-bold uppercase">{u.email}</p>
+                                    <p className="text-gray-500 text-[10px] font-bold uppercase truncate max-w-[150px]">{u.email}</p>
                                 </div>
-                                <span className="text-[10px] font-black text-gray-500 group-hover:text-accent transition-colors">
+                                <span className={`text-[10px] font-black text-gray-500 group-hover:text-accent transition-colors ${language === 'ar' ? 'mr-auto' : 'ml-auto'}`}>
                                     {new Date(u.createdAt).toLocaleDateString(language === 'ar' ? 'ar-JO' : 'en-US')}
                                 </span>
                             </div>
@@ -159,8 +178,8 @@ export default function PlatformDashboard() {
                             <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500 shrink-0">
                                 <Ban size={20} />
                             </div>
-                            <div>
-                                <p className="text-sm font-black text-white mb-1">{language === 'ar' ? 'هناك مطاعم بانتظار المراجعة' : '2 Restaurants Pending Review'}</p>
+                            <div className="w-full">
+                                <p className="text-sm font-black text-white mb-1">{language === 'ar' ? 'هناك مطاعم بانتظار المراجعة' : 'Restaurants Pending Review'}</p>
                                 <p className="text-xs text-red-400 font-bold uppercase tracking-wider">{t.actionRequired}</p>
                             </div>
                         </div>
@@ -168,8 +187,8 @@ export default function PlatformDashboard() {
                             <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-500 shrink-0">
                                 <Calendar size={20} />
                             </div>
-                            <div>
-                                <p className="text-sm font-black text-white mb-1">{language === 'ar' ? 'عروض ستنتهي قريباً' : '5 Offers Expiring Today'}</p>
+                            <div className="w-full">
+                                <p className="text-sm font-black text-white mb-1">{language === 'ar' ? 'عروض ستنتهي قريباً' : 'Offers Expiring Soon'}</p>
                                 <p className="text-xs text-yellow-500 font-bold uppercase tracking-wider">{t.manualReview}</p>
                             </div>
                         </div>

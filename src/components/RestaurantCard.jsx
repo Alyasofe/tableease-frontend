@@ -3,10 +3,12 @@ import { Star, MapPin, Heart, Sparkles, Utensils } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const RestaurantCard = ({ data }) => {
     const { language, t } = useLanguage();
     const { user, toggleFavorite } = useAuth();
+    const { addToast } = useToast();
     const navigate = useNavigate();
     const isFavorite = user?.favorites?.includes(data.id) || user?.favorites?.includes(data._id);
 
@@ -19,7 +21,24 @@ const RestaurantCard = ({ data }) => {
     const handleToggleFavorite = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        await toggleFavorite(data.id || data._id);
+
+        const res = await toggleFavorite(data.id || data._id);
+
+        if (res.success) {
+            addToast(
+                res.isFavorite
+                    ? (language === 'ar' ? 'تمت الإضافة للمفضلة ✨' : 'Added to favorites ✨')
+                    : (language === 'ar' ? 'تمت الإزالة من المفضلة' : 'Removed from favorites'),
+                res.isFavorite ? 'success' : 'info'
+            );
+        } else {
+            addToast(
+                language === 'ar'
+                    ? 'فشل في تحديث المفضلة (RLS Issue)'
+                    : 'Failed to update favorites (RLS Issue)',
+                'error'
+            );
+        }
     };
 
     return (
@@ -33,25 +52,28 @@ const RestaurantCard = ({ data }) => {
         >
             <div className="relative aspect-[4/3] overflow-hidden">
                 <img
-                    src={data.image}
+                    src={data.image || data.imageUrl || data.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'}
                     alt={getLocalized(data.name)}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
                 />
 
                 {/* Favorite Button */}
-                <button
-                    onClick={handleToggleFavorite}
-                    className="absolute top-6 right-6 p-3 rounded-2xl backdrop-blur-md border border-white/20 transition-all active:scale-90 z-20"
-                    style={{ backgroundColor: isFavorite ? '#ef4444' : 'rgba(255,255,255,0.3)' }}
-                >
-                    <Heart size={20} className={isFavorite ? 'text-white fill-current' : 'text-primary'} />
-                </button>
+                {/* Favorite Button - Only visible if logged in */}
+                {user && (
+                    <button
+                        onClick={handleToggleFavorite}
+                        className="absolute top-6 right-6 p-3 rounded-2xl backdrop-blur-md border border-white/20 transition-all active:scale-90 z-20"
+                        style={{ backgroundColor: isFavorite ? '#ef4444' : 'rgba(255,255,255,0.3)' }}
+                    >
+                        <Heart size={20} className={isFavorite ? 'text-white fill-current' : 'text-primary'} />
+                    </button>
+                )}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                 {data.isFeatured && (
                     <div className="absolute top-6 left-6 px-4 py-1.5 bg-accent/90 backdrop-blur-md rounded-full border border-white/20">
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                        <span className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
                             <Sparkles size={10} /> {t.featuredTitle}
                         </span>
                     </div>
@@ -69,20 +91,25 @@ const RestaurantCard = ({ data }) => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-400 text-xs font-bold uppercase tracking-widest mb-8">
-                    <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-3 text-gray-400 text-xs font-bold uppercase tracking-widest mb-8">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                         <MapPin size={12} className="text-accent" />
-                        {getLocalized(data.location)}
+                        {getLocalized(data.location || data.city || data.address || '')}
                     </div>
                     <span>•</span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Utensils size={12} className="text-accent" />
-                        {data.cuisine}
+                        {t.cuisines[data.cuisine] || data.cuisine}
+                    </div>
+                    <span>•</span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-accent font-black">$</span>
+                        {t.priceLevels[data.priceRange] || data.priceRange}
                     </div>
                 </div>
-
                 <Link
                     to={`/restaurant/${data.id || data._id}`}
+                    state={{ preview: data }}
                     className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 group/btn hover:bg-accent transition-all transform active:scale-95 shadow-xl shadow-primary/10"
                 >
                     {t.viewDetails}

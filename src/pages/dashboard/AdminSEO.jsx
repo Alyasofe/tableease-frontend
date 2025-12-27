@@ -10,17 +10,40 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function AdminSEO() {
-    const { token } = useAuth();
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const { language, t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [saved, setSaved] = useState(false);
 
+    const [seoData, setSeoData] = useState({
+        title: "TableEase • Jordan's Smart Dining Revolution",
+        description: "Discover, book, and enjoy the best restaurants in Jordan with TableEase.",
+        keywords: "dining, amman, jordan, booking, restaurants, cafes"
+    });
+
     useEffect(() => {
-        setTimeout(() => setLoading(false), 800);
-    }, []);
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            setLoading(false);
+            return;
+        }
+
+        const localSeo = localStorage.getItem('tableease_seo');
+        if (localSeo) {
+            setSeoData(JSON.parse(localSeo));
+        }
+        setLoading(false);
+    }, [isAuthenticated, authLoading]);
 
     const handleSave = () => {
         setSaved(true);
+        localStorage.setItem('tableease_seo', JSON.stringify(seoData));
+
+        // Apply SEO Changes immediately
+        document.title = seoData.title;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute('content', seoData.description);
+
         setTimeout(() => setSaved(false), 3000);
     };
 
@@ -32,8 +55,7 @@ export default function AdminSEO() {
 
     return (
         <div className="space-y-10 pb-20">
-            {/* Header */}
-            <div className={`flex flex-col md:flex-row justify-between items-end gap-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                 <div className={language === 'ar' ? 'text-right' : ''}>
                     <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-4">
                         {t.contentSEO.split(' ')[0]} <span className="text-accent">{t.contentSEO.split(' ').slice(1).join(' ')}</span>
@@ -59,15 +81,30 @@ export default function AdminSEO() {
                     <div className="space-y-6">
                         <div className="space-y-2">
                             <label className={`text-[10px] font-black uppercase tracking-widest text-gray-500 block ${language === 'ar' ? 'text-right' : ''}`}>{t.siteTitle}</label>
-                            <input type="text" defaultValue="TableEase • Jordan's Smart Dining Revolution" className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent transition-all ${language === 'ar' ? 'text-right' : ''}`} />
+                            <input
+                                type="text"
+                                value={seoData.title}
+                                onChange={(e) => setSeoData({ ...seoData, title: e.target.value })}
+                                className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent transition-all ${language === 'ar' ? 'text-right' : ''}`}
+                            />
                         </div>
                         <div className="space-y-2">
                             <label className={`text-[10px] font-black uppercase tracking-widest text-gray-500 block ${language === 'ar' ? 'text-right' : ''}`}>{t.siteDesc}</label>
-                            <textarea rows="4" defaultValue="Discover, book, and enjoy the best restaurants in Jordan with TableEase. Exclusive offers and seamless booking." className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent transition-all resize-none ${language === 'ar' ? 'text-right' : ''}`} />
+                            <textarea
+                                rows="4"
+                                value={seoData.description}
+                                onChange={(e) => setSeoData({ ...seoData, description: e.target.value })}
+                                className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent transition-all resize-none ${language === 'ar' ? 'text-right' : ''}`}
+                            />
                         </div>
                         <div className="space-y-2">
                             <label className={`text-[10px] font-black uppercase tracking-widest text-gray-500 block ${language === 'ar' ? 'text-right' : ''}`}>{t.keywords}</label>
-                            <input type="text" defaultValue="dining, amman, jordan, booking, restaurants, cafes" className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent transition-all ${language === 'ar' ? 'text-right' : ''}`} />
+                            <input
+                                type="text"
+                                value={seoData.keywords}
+                                onChange={(e) => setSeoData({ ...seoData, keywords: e.target.value })}
+                                className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:border-accent transition-all ${language === 'ar' ? 'text-right' : ''}`}
+                            />
                         </div>
                     </div>
                 </div>
@@ -89,8 +126,8 @@ export default function AdminSEO() {
                         </div>
                         <div className={`p-8 space-y-2 ${language === 'ar' ? 'text-right' : ''}`}>
                             <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest">tableease.com</p>
-                            <h4 className="text-white font-black text-xl">TableEase • Jordan's Smart Dining Revolution</h4>
-                            <p className="text-gray-500 text-sm line-clamp-2">Discover, book, and enjoy the best restaurants in Jordan with TableEase.</p>
+                            <h4 className="text-white font-black text-xl">{seoData.title}</h4>
+                            <p className="text-gray-500 text-sm line-clamp-2">{seoData.description}</p>
                         </div>
                     </div>
 

@@ -8,14 +8,66 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
+import { supabase } from '../../supabaseClient';
+
 export default function AdminFinancials() {
-    const { token } = useAuth();
+    const { user, isAuthenticated, loading: authLoading } = useAuth();
     const { language, t } = useLanguage();
     const [loading, setLoading] = useState(true);
+    const [finStats, setFinStats] = useState({
+        totalRevenue: 0,
+        pendingPayouts: 0,
+        bookingCount: 0,
+        recentTx: []
+    });
 
     useEffect(() => {
-        setTimeout(() => setLoading(false), 800);
-    }, []);
+        let mounted = true;
+
+        const fetchFinancials = async () => {
+            if (authLoading) return;
+            if (!isAuthenticated) {
+                if (mounted) setLoading(false);
+                return;
+            }
+            try {
+                setLoading(true);
+                // 1. Fetch Bookings for Revenue calculation (assuming 2.5 JOD per booking as service fee)
+                const { data: bookings, count } = await supabase
+                    .from('bookings')
+                    .select(`
+                        id,
+                        created_at,
+                        status,
+                        restaurant:restaurants(name)
+                    `, { count: 'exact' });
+
+                // 2. Map to symbolic transactions
+                const tx = bookings?.slice(0, 5).map(b => ({
+                    name: b.restaurant?.name || 'Booking Fee',
+                    date: new Date(b.created_at).toLocaleDateString(language === 'ar' ? 'ar-JO' : 'en-US'),
+                    amount: 'JOD 2.50',
+                    status: b.status === 'completed' ? 'Completed' : b.status === 'pending' ? 'Pending' : 'Failed'
+                })) || [];
+
+                if (mounted) {
+                    setFinStats({
+                        totalRevenue: (count || 0) * 2.5,
+                        pendingPayouts: (bookings?.filter(b => b.status === 'pending').length || 0) * 2.5,
+                        bookingCount: count || 0,
+                        recentTx: tx
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching financials:", error);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        fetchFinancials();
+        return () => { mounted = false; };
+    }, [isAuthenticated, authLoading, language]);
 
     const FinCard = ({ title, value, subtitle, icon: Icon, color }) => (
         <motion.div
@@ -42,11 +94,10 @@ export default function AdminFinancials() {
 
     return (
         <div className="space-y-10 pb-20">
-            {/* Header */}
-            <div className={`flex flex-col md:flex-row justify-between items-end gap-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col md:flex-row justify-between md:items-end gap-6">
                 <div className={language === 'ar' ? 'text-right' : ''}>
                     <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-4">
-                        {t.financials.split(' ')[0]} <span className="text-accent">{t.financials.split(' ')[1] || ''}</span>
+                        {language === 'ar' ? 'القسم' : 'Financial'} <span className="text-accent">{language === 'ar' ? 'المالي' : 'Dashboard'}</span>
                     </h1>
                     <p className="text-gray-400 font-medium">{t.revenueDesc}</p>
                 </div>
@@ -59,9 +110,9 @@ export default function AdminFinancials() {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <FinCard title={t.estRevenue} value="JOD 12,450" subtitle={language === 'ar' ? "+24% مقارنة بالشهر الماضي" : "+24% compared to last month"} icon={DollarSign} color="accent" />
-                <FinCard title={t.retention} value="85%" subtitle={language === 'ar' ? "معدل الاحتفاظ ثابت" : "Retention rate consistent"} icon={Activity} color="blue-400" />
-                <FinCard title={t.payouts} value="JOD 1,200" subtitle={language === 'ar' ? "3 عمليات تحويل مجدولة للغد" : "3 Transfers scheduled for tomorrow"} icon={Wallet} color="purple-400" />
+                <FinCard title={t.estRevenue} value={`JOD ${finStats.totalRevenue.toFixed(2)}`} subtitle={language === 'ar' ? "إجمالي العمولات المحجوزة" : "Total service fees from bookings"} icon={DollarSign} color="accent" />
+                <FinCard title={t.activeBookings || 'Active Bookings'} value={finStats.bookingCount} subtitle={language === 'ar' ? "إجمالي عدد الحجوزات" : "Total number of bookings"} icon={Activity} color="blue-400" />
+                <FinCard title={t.payouts} value={`JOD ${finStats.pendingPayouts.toFixed(2)}`} subtitle={language === 'ar' ? "عمولات قيد الانتظار" : "Fees from pending bookings"} icon={Wallet} color="purple-400" />
             </div>
 
             {/* Transactions / Subscriptions Table */}
@@ -73,7 +124,7 @@ export default function AdminFinancials() {
                     <button className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-accent transition-colors">{t.seeAll}</button>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                    <table className={`w-full ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                         <thead>
                             <tr className="border-b border-white/5">
                                 <th className={`px-10 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500 ${language === 'ar' ? 'text-right' : ''}`}>{t.serviceEntity}</th>
@@ -83,12 +134,7 @@ export default function AdminFinancials() {
                             </tr>
                         </thead>
                         <tbody>
-                            {[
-                                { name: 'Shawarma Reem Sub', date: 'Dec 20, 2025', amount: 'JOD 49.99', status: 'Completed' },
-                                { name: 'Wild Jordan Center', date: 'Dec 19, 2025', amount: 'JOD 120.00', status: 'Pending' },
-                                { name: 'Hashem Restaurant', date: 'Dec 18, 2025', amount: 'JOD 49.99', status: 'Completed' },
-                                { name: 'Books@Cafe Premium', date: 'Dec 17, 2025', amount: 'JOD 89.99', status: 'Failed' },
-                            ].map((tx, i) => (
+                            {finStats.recentTx.map((tx, i) => (
                                 <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                     <td className="px-10 py-6">
                                         <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
@@ -105,7 +151,9 @@ export default function AdminFinancials() {
                                             tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
                                                 'bg-red-500/10 text-red-500 border-red-500/20'
                                             }`}>
-                                            {tx.status}
+                                            {tx.status === 'Completed' ? (language === 'ar' ? 'ناجح' : 'Completed') :
+                                                tx.status === 'Pending' ? (language === 'ar' ? 'معلق' : 'Pending') :
+                                                    (language === 'ar' ? 'فشل' : 'Failed')}
                                         </span>
                                     </td>
                                 </tr>

@@ -10,13 +10,15 @@ export default function Register() {
     const { register } = useAuth();
     const navigate = useNavigate();
 
-    const [role, setRole] = useState('user'); // 'user' or 'owner'
+    const [role, setRole] = useState('customer'); // 'customer' or 'restaurant_owner'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState(''); // New state for success message
     const [fieldErrors, setFieldErrors] = useState({});
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        phone: '',
         password: '',
         confirmPassword: ''
     });
@@ -57,6 +59,10 @@ export default function Register() {
             errors.email = t.invalidEmailFormat;
         }
 
+        if (!formData.phone.trim()) {
+            errors.phone = t.phone + " " + t.isRequired;
+        }
+
         if (!formData.password) errors.password = t.password + " " + t.isRequired;
         if (!formData.confirmPassword) errors.confirmPassword = t.confirmPassword + " " + t.isRequired;
 
@@ -83,17 +89,22 @@ export default function Register() {
                 formData.name,
                 formData.email,
                 formData.password,
-                role
+                role,
+                formData.phone
             );
 
             if (!result.success) {
                 setError(result.message);
+            } else if (result.confirmationRequired) {
+                setSuccessMessage("Registration successful! Please check your email to confirm your account.");
+                // Optionally clear form or disable it
+                setFormData({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
             } else {
                 // Redirect to dashboard for restaurant owners or home for customers
                 if (role === 'restaurant_owner') {
                     navigate('/dashboard');
                 } else {
-                    navigate('/');
+                    navigate('/me');
                 }
             }
         } catch (err) {
@@ -126,6 +137,16 @@ export default function Register() {
                                 className="bg-red-50 text-red-500 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest mt-4 border border-red-100"
                             >
                                 {error}
+                            </motion.div>
+                        )}
+                        {successMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="bg-green-50 text-green-600 p-3 rounded-xl text-xs font-bold mt-4 border border-green-100"
+                            >
+                                {successMessage}
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -177,6 +198,24 @@ export default function Register() {
                             />
                         </div>
                         <ErrorMsg msg={fieldErrors.email} />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2">{t.phone}</label>
+                        <div className={`p-1 rounded-2xl border-2 transition-all ${fieldErrors.phone ? 'border-red-500/50 bg-red-50/10' : 'border-gray-50 focus-within:border-accent/40'}`}>
+                            <input
+                                type="tel"
+                                placeholder="07XXXXXXXX"
+                                className="w-full px-5 py-3 bg-transparent font-bold text-primary outline-none"
+                                value={formData.phone}
+                                onChange={e => {
+                                    setFormData({ ...formData, phone: e.target.value });
+                                    if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' });
+                                }}
+                                dir="ltr"
+                            />
+                        </div>
+                        <ErrorMsg msg={fieldErrors.phone} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

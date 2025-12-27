@@ -52,11 +52,9 @@ export default function AdminDashboard() {
 
     // Fetch all data when component mounts
     useEffect(() => {
-        if (user && user.role === 'admin') {
-            fetchRestaurants();
-            fetchAdminOffers();
-        }
-    }, [user, fetchRestaurants, fetchAdminOffers]);
+        fetchRestaurants();
+        fetchAdminOffers();
+    }, []);
 
     // Initialize restaurant form
     useEffect(() => {

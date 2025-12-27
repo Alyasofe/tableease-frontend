@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRestaurants } from '../../context/RestaurantContext';
 import { useAuth } from '../../context/AuthContext';
@@ -6,6 +7,7 @@ import { Save, Upload, Plus, X, Trash2, Grid } from 'lucide-react';
 
 export default function RestaurantManager() {
     const { t } = useLanguage();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const { restaurants, loading: restaurantsLoading, createRestaurant, updateRestaurant } = useRestaurants();
     const [loading, setLoading] = useState(false);
@@ -29,12 +31,33 @@ export default function RestaurantManager() {
 
     const [amenities, setAmenities] = useState(['Wifi', 'Parking']);
 
-    const [menu, setMenu] = useState([
-        { name: "Mansaf", price: "12.00 JD", description: "Traditional Jordanian dish", image: null },
-        { name: "Musakhan Rolls", price: "5.00 JD", description: "Chicken with sumac and onions", image: null }
-    ]);
+    const [menu, setMenu] = useState([]);
 
     const [offers, setOffers] = useState([]);
+
+    // Helper to convert 12h (07:00 PM) to 24h (19:00) for HTML inputs
+    const t24 = (time) => {
+        if (!time) return "12:00";
+        if (time.includes('AM') || time.includes('PM')) {
+            let [h, m] = time.split(':');
+            let isPM = time.includes('PM');
+            h = parseInt(h);
+            if (isPM && h < 12) h += 12;
+            if (!isPM && h === 12) h = 0;
+            return `${h.toString().padStart(2, '0')}:${m.substring(0, 2)}`;
+        }
+        return time.trim();
+    };
+
+    // Helper to convert 24h (19:00) to 12h (07:00 PM) for DB storage
+    const t12 = (time) => {
+        if (!time) return "12:00 PM";
+        let [h, m] = time.split(':');
+        h = parseInt(h);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
+    };
 
     const [capacities, setCapacities] = useState({ main: 40, terrace: 20 });
     const [location, setLocation] = useState("Rainbow Street, Amman");
@@ -61,7 +84,9 @@ export default function RestaurantManager() {
                     openingHours: userRestaurant.openingHours || "12:00 PM - 12:00 AM"
                 });
 
-                if (userRestaurant.imageUrl) {
+                if (userRestaurant.gallery && userRestaurant.gallery.length > 0) {
+                    setImages(userRestaurant.gallery);
+                } else if (userRestaurant.imageUrl) {
                     setImages([userRestaurant.imageUrl]);
                 }
 
@@ -108,7 +133,8 @@ export default function RestaurantManager() {
             city: city,
             cuisineType: details.cuisine,
             phone: details.phone,
-            imageUrl: images[0],
+            imageUrl: images[0] || "",
+            gallery: images, // This will be joined by the context's mapToDB
             rating: 5.0,
             priceRange: details.priceRange,
             amenities: amenities,
@@ -124,18 +150,18 @@ export default function RestaurantManager() {
             } else {
                 // Create new restaurant
                 result = await createRestaurant(restaurantData);
-                if (result.success) {
-                    setRestaurantId(result.data._id);
+                if (result.success && result.data) {
+                    setRestaurantId(result.data.id || result.data._id);
                 }
             }
-
             if (result.success) {
                 setToast({ type: 'success', message: t.changesSaved });
             } else {
                 setToast({ type: 'error', message: result.message || 'Failed to save restaurant' });
             }
         } catch (error) {
-            setToast({ type: 'error', message: 'An error occurred while saving' });
+            console.error("Save error:", error);
+            setToast({ type: 'error', message: 'An error occurred while saving: ' + error.message });
         } finally {
             setLoading(false);
             setTimeout(() => setToast(null), 3000);
@@ -215,15 +241,15 @@ export default function RestaurantManager() {
                 <h1 className="text-3xl font-heading font-bold">{t.manageRestaurant}</h1>
                 <button
                     onClick={handleSave}
-                    disabled={loading || restaurantsLoading}
+                    disabled={loading}
                     className="flex items-center gap-2 bg-accent hover:bg-highlight text-white px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-70"
                 >
-                    {loading || restaurantsLoading ? (
+                    {loading ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     ) : (
                         <Save size={18} />
                     )}
-                    {loading || restaurantsLoading ? t.saving : t.saveChanges}
+                    {loading ? t.saving : t.saveChanges}
                 </button>
             </div>
 
@@ -313,10 +339,10 @@ export default function RestaurantManager() {
                                     <input
                                         type="time"
                                         className="bg-transparent text-white outline-none w-full appearance-none"
+                                        value={t24(details.openingHours.split(' - ')[0])}
                                         onChange={(e) => {
-                                            const open = e.target.value;
+                                            const open = t12(e.target.value);
                                             const close = details.openingHours.split(' - ')[1] || "12:00 AM";
-                                            // Simple formatter, real app would use date-fns/moment
                                             setDetails({ ...details, openingHours: `${open} - ${close}` });
                                         }}
                                     />
@@ -324,9 +350,10 @@ export default function RestaurantManager() {
                                     <input
                                         type="time"
                                         className="bg-transparent text-white outline-none w-full appearance-none"
+                                        value={t24(details.openingHours.split(' - ')[1])}
                                         onChange={(e) => {
                                             const open = details.openingHours.split(' - ')[0] || "12:00 PM";
-                                            const close = e.target.value;
+                                            const close = t12(e.target.value);
                                             setDetails({ ...details, openingHours: `${open} - ${close}` });
                                         }}
                                     />

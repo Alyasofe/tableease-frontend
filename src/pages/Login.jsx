@@ -24,8 +24,9 @@ export default function Login() {
             const result = await login(formData.email, formData.password);
 
             if (result.success) {
-                // Smart redirect based on user role
-                const userData = JSON.parse(localStorage.getItem('user'));
+                // Smart redirect based on user role - use data returned from context if available
+                // fallback to localStorage if needed
+                const userData = result.data || JSON.parse(localStorage.getItem('user'));
 
                 // Super Admin check by email
                 if (userData?.email === 'admin@tableease.com') {

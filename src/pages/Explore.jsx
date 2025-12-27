@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RestaurantCard, { RestaurantSkeleton } from '../components/RestaurantCard';
 import { useLanguage } from '../context/LanguageContext';
 import { useSearchParams } from 'react-router-dom';
 import { useRestaurants } from '../context/RestaurantContext';
-import { Search, SlidersHorizontal, X, Compass } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Compass, Calendar, Clock, Users } from 'lucide-react';
 
 export default function Explore() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -39,24 +39,24 @@ export default function Explore() {
     // Transform restaurant data to match the expected format
     const transformRestaurants = (restaurants) => {
         return restaurants.map(restaurant => ({
-            id: restaurant._id,
+            id: restaurant.id || restaurant._id,
             name: {
                 en: restaurant.name,
-                ar: restaurant.nameAr || restaurant.name
+                ar: restaurant.nameAr || restaurant.name_ar || restaurant.name
             },
-            image: restaurant.imageUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80",
-            cuisine: restaurant.cuisineType || "International",
+            image: restaurant.image_url || restaurant.imageUrl || restaurant.image || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80",
+            cuisine: restaurant.cuisine_type || restaurant.cuisineType || restaurant.cuisine || "International",
             rating: restaurant.rating || 5.0,
             location: {
-                en: restaurant.city || "Amman",
+                en: restaurant.city || restaurant.address || "Amman",
                 ar: restaurant.city || "عمان"
             },
-            priceRange: restaurant.priceRange || "$$",
+            priceRange: restaurant.price_range || restaurant.priceRange || "$$",
             description: {
                 en: restaurant.description || "Welcome to our restaurant.",
-                ar: restaurant.descriptionAr || "أهلاً بك في مطعمنا."
+                ar: restaurant.descriptionAr || restaurant.description_ar || "أهلاً بك في مطعمنا."
             },
-            isFeatured: restaurant.isFeatured
+            isFeatured: restaurant.is_featured || restaurant.isFeatured
         }));
     };
 
@@ -99,29 +99,31 @@ export default function Explore() {
                         className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-accent/10 border border-accent/20 mb-8"
                     >
                         <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                        <span className="text-accent font-black uppercase tracking-[0.3em] text-[10px]">
+                        <span className="text-accent font-black uppercase tracking-[0.3em] text-xs">
                             {language === 'ar' ? "أرقى الوجهات" : "ELITE VENUES"}
                         </span>
                     </motion.div>
 
-                    <h1 className="text-5xl md:text-8xl font-black font-heading text-primary tracking-tighter leading-[0.9] mb-8">
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-black font-heading text-primary tracking-tighter leading-[0.9] mb-8">
                         {t.exploreDining}<span className="text-accent">.</span>
                     </h1>
 
-                    <p className="text-xl md:text-3xl font-light text-gray-400 max-w-2xl leading-relaxed italic">
+                    <p className="text-lg md:text-2xl font-light text-gray-400 max-w-2xl leading-relaxed italic">
                         "{t.discoverDesc}"
                     </p>
                 </div>
 
+
+
                 {/* Nav Bar: Filters + Expandable Search */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-20 bg-white/40 backdrop-blur-md p-4 rounded-[2.5rem] border border-white/60 shadow-sm relative pr-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-20 bg-white/60 backdrop-blur-md p-4 rounded-[2.5rem] border border-white shadow-sm relative pr-4">
                     {/* Categories / Filters */}
                     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-2 w-full md:w-auto">
                         {cuisines.map(c => (
                             <button
                                 key={c}
                                 onClick={() => setFilter(c)}
-                                className={`whitespace-nowrap px-8 py-3 rounded-full font-black uppercase tracking-widest text-[10px] transition-all ${filter === c
+                                className={`whitespace-nowrap px-8 py-3 rounded-full font-black uppercase tracking-widest text-xs transition-all ${filter === c
                                     ? 'bg-primary text-white shadow-lg'
                                     : 'text-gray-400 hover:text-primary hover:bg-gray-50'
                                     }`}
@@ -133,28 +135,26 @@ export default function Explore() {
 
                     {/* Expandable Cinematic Search */}
                     <div
-                        className="relative flex items-center justify-end"
-                        onMouseEnter={() => setIsSearchHovered(true)}
-                        onMouseLeave={() => !searchInput && setIsSearchHovered(false)}
+                        className="relative flex items-center justify-end w-full md:w-auto"
+                        onClick={() => setIsSearchHovered(true)}
                     >
                         <motion.form
                             onSubmit={handleSearchSubmit}
                             initial={false}
                             animate={{
-                                width: isSearchHovered || searchInput ? '300px' : '56px',
+                                width: (isSearchHovered || searchInput || window.innerWidth < 768) ? (window.innerWidth < 768 ? '100%' : '300px') : '56px',
                             }}
-                            className={`flex items-center bg-white rounded-full border border-gray-100 shadow-sm overflow-hidden h-14 transition-shadow duration-500 ${isSearchHovered || searchInput ? 'px-5 border-accent/40 shadow-xl' : 'justify-center border-transparent'}`}
+                            className={`flex items-center bg-white rounded-full border border-gray-100 shadow-sm overflow-hidden h-14 transition-all duration-500 ${(isSearchHovered || searchInput || window.innerWidth < 768) ? 'px-5 border-accent/40 shadow-xl' : 'justify-center border-transparent cursor-pointer hover:bg-gray-50'}`}
                         >
                             <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
                                 <Search
                                     size={20}
-                                    className={`${isSearchHovered || searchInput ? 'text-accent' : 'text-gray-400'} transition-colors cursor-pointer`}
-                                    onClick={() => !isSearchHovered && setIsSearchHovered(true)}
+                                    className={`${(isSearchHovered || searchInput) ? 'text-accent' : 'text-gray-400'} transition-colors`}
                                 />
                             </div>
 
                             <AnimatePresence>
-                                {(isSearchHovered || searchInput) && (
+                                {(isSearchHovered || searchInput || window.innerWidth < 768) && (
                                     <motion.div
                                         initial={{ opacity: 0, width: 0 }}
                                         animate={{ opacity: 1, width: 'auto' }}
@@ -164,14 +164,19 @@ export default function Explore() {
                                         <input
                                             type="text"
                                             value={searchInput}
+                                            onFocus={() => setIsSearchHovered(true)}
+                                            onBlur={() => !searchInput && setIsSearchHovered(false)}
                                             onChange={(e) => setSearchInput(e.target.value)}
                                             placeholder={t.searchPlaceholder}
-                                            className="ml-4 w-full bg-transparent outline-none text-sm font-medium text-primary placeholder:text-gray-300"
+                                            className={`w-full bg-transparent outline-none text-sm font-medium text-primary placeholder:text-gray-300 ${language === 'ar' ? 'mr-4 text-right' : 'ml-4 text-left'}`}
                                         />
                                         {searchInput && (
                                             <button
                                                 type="button"
-                                                onClick={clearSearch}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearSearch();
+                                                }}
                                                 className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
                                             >
                                                 <X size={14} />
@@ -191,7 +196,7 @@ export default function Explore() {
                         animate={{ opacity: 1, y: 0 }}
                         className="flex flex-wrap items-center gap-4 mb-12"
                     >
-                        <div className="flex items-center gap-2 text-gray-400 text-[10px] font-black uppercase tracking-widest mr-2">
+                        <div className="flex items-center gap-2 text-gray-400 text-xs font-black uppercase tracking-widest mr-2">
                             <SlidersHorizontal size={14} className="text-accent" />
                             <span>{language === 'ar' ? "نتائج لـ:" : "Active Filters:"}</span>
                         </div>
@@ -216,8 +221,6 @@ export default function Explore() {
                                     <X size={12} className="text-gray-300 group-hover:text-accent group-hover:rotate-90 transition-all" />
                                 </button>
                             )}
-
-
                         </div>
                     </motion.div>
                 )}
@@ -249,14 +252,14 @@ export default function Explore() {
                                     <Compass className="w-10 h-10 text-accent" />
                                 </div>
                                 <h3 className="text-3xl font-black text-primary mb-4">{t.noResults}</h3>
-                                <p className="text-gray-500 mb-12 font-medium max-w-sm mx-auto">
+                                <p className="text-gray-500 mb-12 font-medium max-w-sm mx-auto leading-relaxed">
                                     {language === 'ar'
                                         ? "لم نجد أي نتائج تطابق معايير البحث الخاصة بك. حاول تعديل الفلاتر أو البحث عن شيء آخر."
                                         : "We couldn't find any venues matching your criteria. Try widening your search or changing the cuisine type."}
                                 </p>
                                 <button
                                     onClick={() => { setFilter('All'); clearSearch(); }}
-                                    className="px-12 py-5 bg-primary text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] hover:bg-accent transition-all shadow-2xl shadow-primary/20"
+                                    className="px-12 py-5 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-accent transition-all shadow-2xl shadow-primary/20"
                                 >
                                     {language === 'ar' ? "استكشف كافة الأماكن" : "Discover All Venues"}
                                 </button>

@@ -5,8 +5,11 @@ import { Menu, X, User, Globe, LayoutDashboard, UtensilsCrossed } from 'lucide-r
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 
+import NotificationBell from './NotificationBell';
+
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
+
     const [isScrolled, setIsScrolled] = useState(false);
     const { language, toggleLanguage, t } = useLanguage();
     const { user } = useAuth();
@@ -29,8 +32,8 @@ export default function Navbar() {
     return (
         <nav
             className={`fixed w-full z-50 transition-all duration-700 ease-in-out ${isHomePage
-                    ? (isScrolled ? "py-3 bg-primary/40 backdrop-blur-2xl shadow-2xl" : "py-6 bg-transparent")
-                    : "py-3 bg-primary shadow-xl"
+                ? (isScrolled ? "py-3 bg-primary/40 backdrop-blur-2xl shadow-2xl" : "py-6 bg-transparent")
+                : "py-3 bg-primary shadow-xl"
                 } text-white`}
             dir={language === 'ar' ? 'rtl' : 'ltr'}
         >
@@ -105,6 +108,7 @@ export default function Navbar() {
 
                 {/* 3. Actions Section (End) */}
                 <div className="hidden md:flex items-center gap-6">
+                    {user && user.role === 'customer' && <NotificationBell />}
                     <button
                         onClick={toggleLanguage}
                         className="p-2.5 hover:bg-white/5 rounded-2xl transition-all flex items-center gap-2.5 group border border-transparent hover:border-white/10"
@@ -133,6 +137,7 @@ export default function Navbar() {
 
                 {/* Mobile Controls */}
                 <div className="flex items-center gap-3 lg:hidden">
+                    {user && user.role === 'customer' && <NotificationBell />}
                     <button
                         onClick={toggleLanguage}
                         className="text-[10px] font-black border border-accent/40 px-2 py-1 rounded-lg text-accent uppercase"

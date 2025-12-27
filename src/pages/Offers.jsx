@@ -14,7 +14,7 @@ export default function Offers() {
         fetchOffers();
     }, []);
 
-    const exclusiveOffers = offers.filter(o => (o.isPromoCarousel || o.isExclusive) && o.active);
+    const exclusiveOffers = offers.filter(o => (o.isPromoCarousel || o.is_promo_carousel || o.isExclusive || o.isExclusiveHome || o.is_exclusive_home) && o.active);
 
     return (
         <div className="min-h-screen pt-32 pb-20 bg-[#F9FAFB] selection:bg-accent/30 font-inter" dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -71,7 +71,7 @@ export default function Offers() {
                             >
                                 {[...exclusiveOffers, ...exclusiveOffers].map((promo, idx) => (
                                     <Link
-                                        to={promo.restaurant ? `/restaurant/${promo.restaurant._id || promo.restaurant}?offerId=${promo._id}` : "/explore"}
+                                        to={promo.restaurant ? `/restaurant/${promo.restaurant.id || promo.restaurant._id || promo.restaurant}?offerId=${promo.id || promo._id}` : "/explore"}
                                         key={`${promo._id}-${idx}`}
                                         className="min-w-[320px] md:min-w-[550px] h-[350px] relative rounded-[3rem] overflow-hidden group/card shadow-2xl border border-white/20 block"
                                     >
@@ -152,7 +152,7 @@ export default function Offers() {
                                         {offer.restaurant && (
                                             <span className="inline-block bg-accent/20 text-accent px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-accent/20 mb-4 backdrop-blur-sm">
                                                 <Store size={12} className="inline mr-1 -mt-0.5" />
-                                                {language === 'ar' ? offer.restaurant.nameAr || offer.restaurant.name : offer.restaurant.name}
+                                                {language === 'ar' ? offer.restaurant.name_ar || offer.restaurant.nameAr || offer.restaurant.name : offer.restaurant.name}
                                             </span>
                                         )}
                                         <span className={`text-accent text-xs font-black uppercase tracking-[0.3em] mb-4 block ${offer.restaurant ? 'mt-2' : ''}`}>
@@ -177,7 +177,7 @@ export default function Offers() {
                                     </div>
 
                                     <Link
-                                        to={offer.restaurant ? `/restaurant/${offer.restaurant._id || offer.restaurant}?offerId=${offer._id}` : "/explore"}
+                                        to={offer.restaurant ? `/restaurant/${offer.restaurant.id || offer.restaurant._id || offer.restaurant}?offerId=${offer.id || offer._id}` : "/explore"}
                                         className="group/btn relative inline-flex items-center justify-center gap-3 w-full py-5 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs overflow-hidden transition-all hover:bg-black hover:scale-[1.02] active:scale-[0.98] shadow-2xl shadow-primary/20"
                                     >
                                         <span className="relative z-10 flex items-center gap-2">

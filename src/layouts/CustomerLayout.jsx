@@ -6,7 +6,7 @@ import { Home, Heart, Bell, User, Search, LogOut, ChevronLeft } from 'lucide-rea
 
 export default function CustomerLayout() {
     const { t, language } = useLanguage();
-    const { user, logout } = useAuth();
+    const { user, logout, resendVerification } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -59,7 +59,7 @@ export default function CustomerLayout() {
                         <Link to="/me" className="relative group p-0.5 rounded-full border-2 border-transparent hover:border-accent transition-all">
                             <div className="w-10 h-10 rounded-full overflow-hidden shadow-md ring-2 ring-white">
                                 <img
-                                    src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=D4A574&color=1a1a2e`}
+                                    src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=D4A574&color=1a1a2e`}
                                     alt="Profile"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                                 />
@@ -71,7 +71,7 @@ export default function CustomerLayout() {
             </motion.header>
 
             {/* Main Content - Responsive width */}
-            <main className="pt-16 pb-24 md:pb-8 px-4 md:px-8 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
+            <main className="pt-16 pb-24 md:pb-8 px-4 md:px-8 max-w-3xl lg:max-w-7xl mx-auto">
                 <Outlet />
             </main>
 

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     X, ChevronRight, ChevronLeft, Users,
     DollarSign, Utensils, Clock, MapPin,
     Sparkles, Coffee, Briefcase, User,
-    VolumeX, Gem, Trash2, Search
+    VolumeX, Gem, Trash2, Search, Heart, Star, Music, Zap
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useRestaurants } from '../context/RestaurantContext';
@@ -18,49 +18,64 @@ export default function VibeFinder() {
     const [step, setStep] = useState(0);
     const [answers, setAnswers] = useState({});
     const [results, setResults] = useState([]);
+    const [isCalculating, setIsCalculating] = useState(false);
 
-    const questions = [
-        {
-            id: 'withWho',
-            title: language === 'ar' ? "مع مين طالع؟" : "Who are you with?",
-            options: [
-                { id: 'alone', label: language === 'ar' ? "لوحدي" : "Alone", icon: User },
-                { id: 'family', label: language === 'ar' ? "عائلة" : "Family", icon: Users },
-                { id: 'friends', label: language === 'ar' ? "أصدقاء" : "Friends", icon: Sparkles },
-                { id: 'business', label: language === 'ar' ? "عمل" : "Business", icon: Briefcase },
-            ]
-        },
-        {
-            id: 'budget',
-            title: language === 'ar' ? "الميزانية المتوقعة؟" : "Expected budget?",
-            options: [
-                { id: 'budget', label: language === 'ar' ? "اقتصادية" : "Budget", icon: DollarSign, level: 1 },
-                { id: 'moderate', label: language === 'ar' ? "متوسطة" : "Moderate", icon: DollarSign, level: 2 },
-                { id: 'luxury', label: language === 'ar' ? "فاخرة" : "Luxury", icon: Gem, level: 4 },
-            ]
-        },
-        {
-            id: 'category',
-            title: language === 'ar' ? "شو الجو اللي بتدور عليه؟" : "What's the vibe?",
-            options: [
-                { id: 'food', label: language === 'ar' ? "أكل" : "Food", icon: Utensils },
-                { id: 'coffee', label: language === 'ar' ? "قهوة" : "Coffee", icon: Coffee },
-                { id: 'quiet', label: language === 'ar' ? "جلسة هادئة" : "Quiet Session", icon: VolumeX },
-            ]
-        },
-        {
-            id: 'region',
-            title: language === 'ar' ? "أي منطقة بتفضل؟" : "Preferred region?",
-            options: [
-                { id: 'west', label: language === 'ar' ? "غرب عمان" : "West Amman", icon: MapPin },
-                { id: 'abdoun', label: language === 'ar' ? "عبدون / السويفية" : "Abdoun / Sweifieh", icon: MapPin },
-                { id: 'downtown', label: language === 'ar' ? "وسط البلد" : "Downtown", icon: MapPin },
-                { id: 'webdeh', label: language === 'ar' ? "اللويبدة / الرينبو" : "Webdeh / Rainbow", icon: MapPin },
-                { id: 'north', label: language === 'ar' ? "شمال عمان" : "North Amman", icon: MapPin },
-                { id: 'any', label: language === 'ar' ? "أي مكان" : "Anywhere", icon: Sparkles },
-            ]
-        }
-    ];
+    const uniqueCities = useMemo(() => {
+        const cities = new Set(restaurants.map(r => r.city).filter(c => {
+            // Filter out empty, short strings, and numeric/coordinate strings
+            if (!c || c.trim().length < 2) return false;
+            if (/[\d\.]+/.test(c)) return false; // Rejects "35.820..."
+            return true;
+        }));
+        return Array.from(cities).slice(0, 5);
+    }, [restaurants]);
+
+    const cityImages = {
+        "Amman": "https://images.unsplash.com/photo-1596627006687-f27303c73fc5?w=500&q=80",
+        "Aqaba": "https://images.unsplash.com/photo-1590089415225-401cd6f9ad52?w=500&q=80",
+        "Irbid": "https://images.unsplash.com/photo-1627734807936-4e5540306d1d?w=500&q=80",
+        "Salt": "https://images.unsplash.com/photo-1548013146-72479768bada?w=500&q=80",
+        "Zarqa": "https://images.unsplash.com/photo-1578589318274-0466c0531500?w=500&q=80",
+        "default": "https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=500&q=80"
+    };
+
+    const questions = useMemo(() => {
+        const cityOptions = uniqueCities.map(city => ({
+            id: city,
+            label: city,
+            icon: MapPin,
+            image: cityImages[city] || cityImages.default
+        }));
+
+        return [
+            {
+                id: 'mood',
+                title: language === 'ar' ? "كيف هو مودك اليوم؟" : "What's your mood?",
+                options: [
+                    { id: 'chill', label: language === 'ar' ? "رايق وهادي" : "Chill & Quiet", icon: VolumeX, image: "https://images.unsplash.com/photo-1493857671505-72967e2e2760?w=500&q=80" },
+                    { id: 'lively', label: language === 'ar' ? "نشيط وحيوي" : "Lively & Fun", icon: Zap, image: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=500&q=80" },
+                    { id: 'fancy', label: language === 'ar' ? "كشخة (فاخر)" : "Fancy & Chic", icon: Gem, image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=500&q=80" },
+                    { id: 'work', label: language === 'ar' ? "تركيز وعمل" : "Focused Work", icon: Briefcase, image: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=500&q=80" },
+                ]
+            },
+            {
+                id: 'category',
+                title: language === 'ar' ? "شو نفسك تاكل/تشرب؟" : "Cravings?",
+                options: [
+                    { id: 'food', label: language === 'ar' ? "وجبة دسمة" : "Full Meal", icon: Utensils, image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80" },
+                    { id: 'coffee', label: language === 'ar' ? "قهوة وحلى" : "Coffee & Sweets", icon: Coffee, image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80" },
+                ]
+            },
+            {
+                id: 'region',
+                title: language === 'ar' ? "وين حابب تروح؟" : "Preferred Area?",
+                options: [
+                    ...cityOptions,
+                    { id: 'any', label: language === 'ar' ? "وين ما كان" : "Anywhere", icon: Sparkles, image: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=500&q=80" },
+                ]
+            }
+        ];
+    }, [language, uniqueCities]);
 
     const handleAnswer = (questionId, optionId) => {
         const newAnswers = { ...answers, [questionId]: optionId };
@@ -69,51 +84,77 @@ export default function VibeFinder() {
         if (step < questions.length - 1) {
             setStep(step + 1);
         } else {
-            calculateResults(newAnswers);
-            setStep(step + 1); // Move to results step
+            setIsCalculating(true);
+            setTimeout(() => {
+                calculateResults(newAnswers);
+                setIsCalculating(false);
+                setStep(step + 1);
+            }, 1500); // Cinematic delay for "Thinking"
         }
     };
 
     const calculateResults = (finalAnswers) => {
-        let filtered = [...restaurants];
+        // Smart Scoring Algorithm
+        let scored = restaurants.map(r => {
+            let score = 0;
+            const searchStr = `${r.city || ''} ${r.address || ''} ${r.nameAr || ''} ${r.name || ''} ${r.cuisineType || ''} ${r.description || ''}`.toLowerCase();
 
-        // 1. Filter by category (Food vs Coffee)
-        if (finalAnswers.category === 'food') {
-            filtered = filtered.filter(r => r.type === 'restaurant' || r.cuisineType !== 'Cafe');
-        } else if (finalAnswers.category === 'coffee') {
-            filtered = filtered.filter(r => r.type === 'cafe' || r.cuisineType === 'Cafe');
-        }
+            // 1. Category Score (Essential) - 50 Points
+            if (finalAnswers.category === 'food' && r.type !== 'cafe') score += 50;
+            if (finalAnswers.category === 'coffee' && r.type === 'cafe') score += 50;
 
-        // 2. Filter by Budget
-        if (finalAnswers.budget === 'budget') {
-            filtered = filtered.filter(r => r.priceRange === '$' || r.priceRange === '$$');
-        } else if (finalAnswers.budget === 'luxury') {
-            filtered = filtered.filter(r => r.priceRange === '$$$' || r.priceRange === '$$$$');
-        }
+            // 2. Mood Score (Vibe matching) - 30 Points
+            if (finalAnswers.mood === 'chill' && (searchStr.includes('quiet') || searchStr.includes('cozy') || searchStr.includes('هادئ'))) score += 30;
+            if (finalAnswers.mood === 'lively' && (searchStr.includes('music') || searchStr.includes('busy') || searchStr.includes('crowded'))) score += 30;
+            if (finalAnswers.mood === 'fancy' && (r.priceRange === '$$$' || r.priceRange === '$$$$')) score += 30;
+            if (finalAnswers.mood === 'work' && (searchStr.includes('wifi') || searchStr.includes('quiet') || r.type === 'cafe')) score += 30;
 
-        // 3. Filter by Region (Heuristic string matching)
-        if (finalAnswers.region !== 'any') {
-            const regionKeyword = finalAnswers.region;
-            filtered = filtered.filter(r => {
-                const searchStr = `${r.city || ''} ${r.address || ''} ${r.nameAr || ''} ${r.name || ''}`.toLowerCase();
-                if (regionKeyword === 'west') return searchStr.includes('west') || searchStr.includes('غرب');
-                if (regionKeyword === 'abdoun') return searchStr.includes('abdoun') || searchStr.includes('sweifieh') || searchStr.includes('عبدون') || searchStr.includes('سويفية');
-                if (regionKeyword === 'downtown') return searchStr.includes('downtown') || searchStr.includes('وسط البلد') || searchStr.includes('بلد');
-                if (regionKeyword === 'webdeh') return searchStr.includes('webdeh') || searchStr.includes('rainbow') || searchStr.includes('لويبدة') || searchStr.includes('رينبو');
-                if (regionKeyword === 'north') return searchStr.includes('north') || searchStr.includes('شمال');
-                return true;
-            });
-        }
+            // 3. Region Score - 20 Points
+            const region = finalAnswers.region;
+            if (region !== 'any') {
+                // Exact city match (Primary)
+                if (r.city && r.city.toLowerCase() === region.toLowerCase()) {
+                    score += 20;
+                }
+                // Fallback fuzzy search (Secondary)
+                else if (searchStr.includes(region.toLowerCase())) {
+                    score += 15;
+                }
+            } else {
+                score += 10; // Bonus for flexibility
+            }
 
-        // Sort by rating
-        filtered.sort((a, b) => b.rating - a.rating);
-        setResults(filtered.slice(0, 3));
+            // 4. Rating Bonus (0-10 Points)
+            score += (r.rating || 0) * 2;
+
+            return { ...r, score };
+        });
+
+        // Sort by score desc
+        scored.sort((a, b) => b.score - a.score);
+
+        // Enhance results with a "Why we picked this" reason
+        const topResults = scored.slice(0, 3).map(r => ({
+            ...r,
+            matchReason: getMatchReason(r, finalAnswers, language)
+        }));
+
+        setResults(topResults);
+    };
+
+    const getMatchReason = (restaurant, answers, lang) => {
+        if (answers.mood === 'fancy') return lang === 'ar' ? "خيار مثالي لتجربة فاخرة وأنيقة." : "Perfect for a fancy and elegant experience.";
+        if (answers.mood === 'work') return lang === 'ar' ? "مكان هادئ ومناسب للتركيز والعمل." : "Quiet spot, great for focus and work.";
+        if (answers.mood === 'chill') return lang === 'ar' ? "أجواء مريحة وهادئة للاستمتاع." : "Cozy vibes to relax and enjoy.";
+        if (restaurant.rating > 4.5) return lang === 'ar' ? "أحد أعلى الأماكن تقييماً في المدينة!" : "One of the highest rated spots in town!";
+        return lang === 'ar' ? "يطابق تفضيلاتك بشكل ممتاز." : "Matches your preferences perfectly.";
     };
 
     const reset = () => {
         setStep(0);
         setAnswers({});
         setResults([]);
+        setIsCalculating(false);
     };
 
     return (
@@ -123,45 +164,22 @@ export default function VibeFinder() {
                 className={`fixed bottom-10 ${language === 'ar' ? 'left-10' : 'right-10'} z-[90]`}
                 dir={language === 'ar' ? 'rtl' : 'ltr'}
             >
-                <div className="relative">
-                    {/* Ambient Glow behind the pill */}
-                    <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full" />
+                <div className="relative group">
+                    <div className="absolute inset-0 bg-accent/40 blur-xl rounded-full group-hover:bg-accent/60 transition-all duration-500" />
 
                     <motion.button
-                        whileHover={{ scale: 1.05, y: -5 }}
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setIsOpen(true)}
-                        className="relative flex items-center gap-4 pl-4 pr-6 py-3 bg-primary/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] group hover:border-accent/50 transition-all duration-500 overflow-hidden"
+                        className="relative flex items-center gap-3 pl-3 pr-5 py-3 bg-primary text-white border border-white/10 rounded-full shadow-2xl overflow-hidden"
                     >
-                        {/* Animated Icon Core */}
-                        <div className="relative w-11 h-11 bg-accent rounded-full flex items-center justify-center text-white shadow-lg overflow-hidden">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                                className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"
-                            />
-                            <svg viewBox="0 0 24 24" className="w-6 h-6 relative z-10 group-hover:scale-125 transition-transform fill-current">
-                                <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
-                            </svg>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent to-highlight flex items-center justify-center relative">
+                            <Sparkles size={20} className="text-white animate-pulse" />
                         </div>
-
-                        {/* Label Content */}
-                        <div className="flex flex-col items-start leading-none gap-1">
-                            <div className="flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">AI Genius</span>
-                            </div>
-                            <span className="text-white text-sm font-black tracking-tight">
-                                {language === 'ar' ? "شو جوّك اليوم؟" : "What's the vibe?"}
-                            </span>
+                        <div className="flex flex-col items-start">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-accent">AI Genius</span>
+                            <span className="text-sm font-bold">{language === 'ar' ? "شو جوّك اليوم؟" : "Find My Vibe"}</span>
                         </div>
-
-                        {/* Interactive Shine Effect */}
-                        <motion.div
-                            animate={{ x: ['-100%', '200%'] }}
-                            transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent w-full skew-x-12"
-                        />
                     </motion.button>
                 </div>
             </div>
@@ -173,60 +191,101 @@ export default function VibeFinder() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-primary/95 backdrop-blur-2xl"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/95 backdrop-blur-xl"
                         dir={language === 'ar' ? 'rtl' : 'ltr'}
                     >
                         {/* Close button */}
                         <button
                             onClick={() => { setIsOpen(false); reset(); }}
-                            className="absolute top-8 right-8 text-white/40 hover:text-white transition-colors"
+                            className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors"
                         >
-                            <X size={40} />
+                            <X size={24} />
                         </button>
 
-                        <div className="w-full max-w-4xl">
-                            {step < questions.length ? (
+                        <div className="w-full max-w-6xl">
+                            {isCalculating ? (
+                                <motion.div
+                                    className="flex flex-col items-center justify-center text-center text-white"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                >
+                                    <div className="w-24 h-24 mb-8 relative">
+                                        <motion.div
+                                            className="absolute inset-0 border-4 border-accent/30 rounded-full"
+                                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                                            transition={{ duration: 2, repeat: Infinity }}
+                                        />
+                                        <motion.div
+                                            className="absolute inset-0 border-t-4 border-accent rounded-full"
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                        />
+                                        <Sparkles className="absolute inset-0 m-auto text-accent" size={32} />
+                                    </div>
+                                    <h3 className="text-2xl md:text-4xl font-heading font-bold mb-2">
+                                        {language === 'ar' ? "جاري تحليل ذوقك..." : "Analyzing your vibe..."}
+                                    </h3>
+                                    <p className="text-white/50">
+                                        {language === 'ar' ? "نبحث في أفضل الأماكن في الأردن" : "Scanning Jordan's finest venues"}
+                                    </p>
+                                </motion.div>
+                            ) : step < questions.length ? (
                                 <motion.div
                                     key={step}
-                                    initial={{ opacity: 0, x: 50 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -50 }}
-                                    className="text-center"
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -30 }}
+                                    className="flex flex-col items-center"
                                 >
-                                    <span className="text-accent font-black uppercase tracking-widest text-sm mb-6 block">
-                                        {language === 'ar' ? `السؤال ${step + 1} من ${questions.length}` : `Question ${step + 1} of ${questions.length}`}
-                                    </span>
-                                    <h3 className="text-4xl md:text-7xl font-black text-white mb-16 font-heading tracking-tighter leading-none">
+                                    {/* Progress */}
+                                    <div className="w-full max-w-md h-1 bg-white/10 rounded-full mb-8 overflow-hidden">
+                                        <motion.div
+                                            className="h-full bg-accent"
+                                            initial={{ width: `${(step / questions.length) * 100}%` }}
+                                            animate={{ width: `${((step + 1) / questions.length) * 100}%` }}
+                                        />
+                                    </div>
+
+                                    <h3 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-12 text-center font-heading">
                                         {questions[step].title}
                                     </h3>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full">
                                         {questions[step].options.map((option) => (
                                             <motion.button
                                                 key={option.id}
-                                                whileHover={{ scale: 1.05, y: -10 }}
-                                                whileTap={{ scale: 0.95 }}
+                                                whileHover={{ scale: 1.02, y: -5 }}
+                                                whileTap={{ scale: 0.98 }}
                                                 onClick={() => handleAnswer(questions[step].id, option.id)}
-                                                className="group relative h-48 md:h-64 bg-white/5 border border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 hover:bg-accent hover:border-accent transition-all duration-500 overflow-hidden"
+                                                className="group relative h-48 md:h-64 rounded-[2rem] overflow-hidden border border-white/10"
                                             >
-                                                <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-2xl flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                                                    <option.icon className="text-white" size={32} />
+                                                {/* Background Image */}
+                                                <div className="absolute inset-0">
+                                                    <img
+                                                        src={option.image}
+                                                        alt={option.label}
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 group-hover:opacity-40"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                                                 </div>
-                                                <span className="text-white font-black text-lg md:text-xl uppercase tracking-tight">
-                                                    {option.label}
-                                                </span>
 
-                                                {/* Corner Decoration */}
-                                                <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-white/5 rounded-full blur-xl group-hover:bg-white/20"></div>
+                                                {/* Content */}
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-10">
+                                                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-4 text-white border border-white/20 group-hover:scale-110 group-hover:bg-accent group-hover:border-accent transition-all">
+                                                        <option.icon size={24} />
+                                                    </div>
+                                                    <span className="text-white font-bold text-lg md:text-xl tracking-tight group-hover:text-amber-100 transition-colors">
+                                                        {option.label}
+                                                    </span>
+                                                </div>
                                             </motion.button>
                                         ))}
                                     </div>
 
-                                    {/* Back Button */}
                                     {step > 0 && (
                                         <button
                                             onClick={() => setStep(step - 1)}
-                                            className="mt-16 text-white/40 hover:text-white flex items-center gap-2 mx-auto font-black uppercase tracking-widest text-xs"
+                                            className="mt-8 text-white/40 hover:text-white flex items-center gap-2 text-sm font-bold uppercase tracking-widest"
                                         >
                                             <ChevronLeft size={16} /> {t.back}
                                         </button>
@@ -235,74 +294,99 @@ export default function VibeFinder() {
                             ) : (
                                 // Results Step
                                 <motion.div
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="text-center"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="w-full"
                                 >
-                                    <div className="mb-12">
-                                        <div className="w-24 h-24 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-accent/30">
-                                            <Sparkles className="text-accent" size={48} />
-                                        </div>
-                                        <h3 className="text-5xl md:text-7xl font-black text-white mb-4 font-heading tracking-tight leading-none">
-                                            {language === 'ar' ? "لقد وجدنا طلبك!" : "Magic Matches Found!"}
+                                    <div className="text-center mb-12">
+                                        <h3 className="text-3xl md:text-5xl font-black text-white mb-2 font-heading">
+                                            {language === 'ar' ? "لقينا جوّك!" : "Vibe Matched!"}
                                         </h3>
-                                        <p className="text-xl text-white/50 font-medium">
-                                            {language === 'ar' ? "هذه أفضل 3 خيارات تناسب ذوقك تماماً" : "Hand-picked gems based on your mood."}
+                                        <p className="text-white/60 text-lg">
+                                            {language === 'ar' ? "بناءً على اختياراتك، بنرشحلك هالأماكن" : "Based on your mood, we recommend these spots"}
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-                                        {results.length > 0 ? (
-                                            results.map((venue, idx) => (
-                                                <motion.div
-                                                    key={venue._id}
-                                                    initial={{ opacity: 0, y: 30 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: idx * 0.1 }}
-                                                    className="group relative bg-white/5 border border-white/10 rounded-[3rem] p-6 hover:bg-white/10 transition-all duration-500 overflow-hidden"
-                                                >
-                                                    <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-6">
-                                                        <img
-                                                            src={venue.imageUrl || venue.image || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=400&fit=crop"}
-                                                            alt={venue.name}
-                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                                        {results.map((venue, idx) => (
+                                            <motion.div
+                                                key={venue.id || idx}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: idx * 0.1 }}
+                                                className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden hover:bg-white/10 transition-colors group"
+                                            >
+                                                {/* Image */}
+                                                <div className="relative h-48 overflow-hidden">
+                                                    <img
+                                                        src={venue.image_url || venue.imageUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400"}
+                                                        alt={venue.name}
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                        onError={(e) => {
+                                                            e.target.onerror = null;
+                                                            e.target.src = "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&q=80";
+                                                        }}
+                                                    />
+                                                    <div className="absolute top-4 right-4 bg-accent text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                                        {Math.min(100, Math.round((venue.score / 110) * 100))}% Match
                                                     </div>
-                                                    <h4 className="text-2xl font-black text-white mb-3 truncate px-2">
-                                                        {language === 'ar' ? (venue.nameAr || venue.name) : venue.name}
-                                                    </h4>
-                                                    <div className="flex items-center justify-center gap-4 text-xs font-black text-white/40 uppercase tracking-widest mb-8">
-                                                        <span className="flex items-center gap-1.5"><Star size={14} className="text-accent fill-current" /> {venue.rating}</span>
-                                                        <span>•</span>
-                                                        <span>{venue.priceRange}</span>
+                                                </div>
+
+                                                {/* Details */}
+                                                <div className="p-6">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <h4 className="text-white font-bold text-xl truncate pr-4">
+                                                            {language === 'ar' ? (venue.name_ar || venue.name) : venue.name}
+                                                        </h4>
+                                                        <div className="flex flex-col items-end">
+                                                            <div className="flex text-accent text-xs">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star key={i} size={10} fill={i < Math.floor(venue.rating) ? "currentColor" : "none"} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     </div>
+
+                                                    <p className="text-accent/80 text-sm italic mb-4 flex items-center gap-2">
+                                                        <Sparkles size={12} />
+                                                        {venue.matchReason}
+                                                    </p>
+
                                                     <Link
-                                                        to={`/restaurant/${venue._id || venue.id}`}
-                                                        className="block w-full py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-primary transition-all"
+                                                        to={`/restaurant/${venue.id || venue._id}`}
+                                                        className="block w-full py-3 bg-white text-primary text-center rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-accent hover:text-white transition-all"
+                                                        onClick={() => setIsOpen(false)}
                                                     >
-                                                        {t.viewDetails}
+                                                        {language === 'ar' ? "عرض التفاصيل" : "View Details"}
                                                     </Link>
-                                                </motion.div>
-                                            ))
-                                        ) : (
-                                            <div className="col-span-full py-20">
-                                                <h4 className="text-2xl font-bold text-white/20">{t.noResults}</h4>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+
+                                        {results.length === 0 && (
+                                            <div className="col-span-full text-center py-20 bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                                                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 text-white/40">
+                                                    <X size={32} />
+                                                </div>
+                                                <h4 className="text-white text-xl font-bold mb-2">
+                                                    {language === 'ar' ? "ما لقينا شي يطابق كل الشروط" : "No exact matches found"}
+                                                </h4>
+                                                <p className="text-white/40 mb-6">
+                                                    {language === 'ar' ? "جرب تغيير بعض الخيارات" : "Try adjusting your filters slightly"}
+                                                </p>
+                                                <button onClick={reset} className="text-accent hover:text-white font-bold underline">
+                                                    {language === 'ar' ? "إعادة البحث" : "Start Over"}
+                                                </button>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                                    <div className="text-center">
                                         <button
                                             onClick={reset}
-                                            className="px-10 py-4 border border-white/20 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all"
+                                            className="px-8 py-3 rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white transition-all text-sm font-bold uppercase tracking-widest"
                                         >
-                                            {language === 'ar' ? "إعادة المحاولة" : "Try Again"}
-                                        </button>
-                                        <button
-                                            onClick={() => { setIsOpen(false); reset(); }}
-                                            className="px-10 py-4 bg-white text-primary rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-accent hover:text-white transition-all shadow-2xl"
-                                        >
-                                            {language === 'ar' ? "إغلاق" : "Close"}
+                                            {language === 'ar' ? "بحث جديد" : "Start New Search"}
                                         </button>
                                     </div>
                                 </motion.div>
@@ -315,21 +399,4 @@ export default function VibeFinder() {
     );
 }
 
-function Star({ size, className, fill }) {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill={fill || "currentColor"}
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
-    );
-}
+

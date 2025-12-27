@@ -9,11 +9,13 @@ import {
 import { useOffers } from '../../context/OfferContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRestaurants } from '../../context/RestaurantContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminOffers() {
     const { offers, loading, fetchAdminOffers, addOffer, updateOffer, deleteOffer } = useOffers();
     const { restaurants, fetchRestaurants } = useRestaurants();
     const { language, t } = useLanguage();
+    const { isAuthenticated, loading: authLoading } = useAuth();
 
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,7 +88,7 @@ export default function AdminOffers() {
 
     return (
         <div className="space-y-10">
-            <div className={`flex flex-col md:flex-row justify-between items-end gap-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
                 <div className={language === 'ar' ? 'text-right' : ''}>
                     <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-2">
                         {t.globalOffers.split(' ')[0]} <span className="text-accent">{t.globalOffers.split(' ')[1]}</span>

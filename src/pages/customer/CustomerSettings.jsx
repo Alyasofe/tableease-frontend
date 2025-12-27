@@ -19,8 +19,7 @@ export default function CustomerSettings() {
     const [profileData, setProfileData] = useState({
         username: user?.username || '',
         email: user?.email || '',
-        phone: user?.phone || '',
-        city: user?.city || ''
+        phone: user?.phone || ''
     });
     const [notifications, setNotifications] = useState({
         email: true,
@@ -51,7 +50,11 @@ export default function CustomerSettings() {
                 setMessage({ type: 'success', text: t.changesSaved || 'Changes saved!' });
                 setIsEditingProfile(false);
             } else {
-                setMessage({ type: 'error', text: result.message });
+                if (result.message && result.message.includes('unique constraint')) {
+                    setMessage({ type: 'error', text: t.usernameTaken || 'Username is already taken' });
+                } else {
+                    setMessage({ type: 'error', text: result.message });
+                }
             }
         } catch (err) {
             setMessage({ type: 'error', text: t.errorOccurred || 'An error occurred' });
@@ -74,7 +77,7 @@ export default function CustomerSettings() {
         reader.onloadend = async () => {
             setSaving(true);
             try {
-                const result = await updateProfile({ avatar: reader.result });
+                const result = await updateProfile({ avatar_url: reader.result });
                 if (result.success) {
                     setMessage({ type: 'success', text: t.avatarUpdated || 'Profile picture updated!' });
                 } else {
@@ -154,12 +157,12 @@ export default function CustomerSettings() {
                 e.stopPropagation();
                 onChange();
             }}
-            className={`relative w-14 h-8 rounded-full transition-all duration-300 flex-shrink-0 ${enabled ? 'bg-accent shadow-inner' : 'bg-gray-200'} focus:ring-2 focus:ring-accent/20 outline-none`}
+            className={`w-14 h-8 rounded-full flex items-center px-1 transition-all duration-300 flex-shrink-0 ${enabled ? 'bg-accent shadow-inner justify-end' : 'bg-gray-200 justify-start'} focus:ring-2 focus:ring-accent/20 outline-none`}
         >
             <motion.div
-                animate={{ x: enabled ? (language === 'ar' ? -26 : 26) : 0 }}
+                layout
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="absolute top-1 start-1 w-6 h-6 bg-white rounded-full shadow-lg pointer-events-none"
+                className="w-6 h-6 bg-white rounded-full shadow-lg pointer-events-none"
             />
         </button>
     );
@@ -208,7 +211,7 @@ export default function CustomerSettings() {
                     <div className="flex items-center gap-4 pb-5 border-b border-gray-100">
                         <div className="relative">
                             <img
-                                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=D4A574&color=fff&size=100`}
+                                src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=D4A574&color=fff&size=100`}
                                 alt="Profile"
                                 className="w-20 h-20 rounded-2xl object-cover border-3 border-accent/20 flex-shrink-0"
                             />
